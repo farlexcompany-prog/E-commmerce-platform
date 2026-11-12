@@ -10,7 +10,20 @@ class Product extends Model
         'name',
         'slug',
         'description',
+        'category',
+        'brand',
+        'manufacturer',
+        'pack_size',
+        'dosage_form',
+        'rx_required',
         'price',
+        'mrp',
+        'rating',
+        'review_count',
+        'art_style',
+        'details',
+        'featured',
+        'stock',
         'image_url',
         'active',
     ];
@@ -19,7 +32,17 @@ class Product extends Model
     {
         return [
             'price' => 'decimal:2',
+            'mrp' => 'decimal:2',
+            'rating' => 'decimal:1',
+            'details' => 'array',
+            'rx_required' => 'boolean',
+            'featured' => 'boolean',
             'active' => 'boolean',
         ];
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
     }
 }

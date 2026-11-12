@@ -2,52 +2,173 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\NewsletterSubscriber;
 use App\Models\Order;
 use App\Models\Product;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use RuntimeException;
+use Throwable;
 
 class StoreController extends Controller
 {
     public function index(): View
     {
         return view('store', [
-            'products' => Product::query()
+            'featuredProducts' => Product::query()
                 ->where('active', true)
+                ->where('featured', true)
                 ->orderBy('name')
+                ->take(8)
+                ->get(),
+            'categories' => config('store.categories'),
+            'concerns' => config('store.concerns'),
+            'banners' => config('store.banners'),
+        ]);
+    }
+
+    public function shop(Request $request): View
+    {
+        $filters = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+            'category' => ['nullable', 'string', 'max:80'],
+            'brand' => ['nullable', 'string', 'max:80'],
+            'form' => ['nullable', 'string', 'max:40'],
+            'rx' => ['nullable', 'in:rx,otc'],
+            'max_price' => ['nullable', 'numeric', 'min:0', 'max:100000'],
+            'min_discount' => ['nullable', 'integer', 'min:0', 'max:90'],
+            'min_rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
+            'sort' => ['nullable', 'in:relevance,price-low,price-high,discount,rating'],
+        ]);
+
+        $query = Product::query()->where('active', true);
+
+        if (! empty($filters['q'])) {
+            $term = trim($filters['q']);
+            $query->where(function ($builder) use ($term) {
+                $builder->where('name', 'like', '%'.$term.'%')
+                    ->orWhere('category', 'like', '%'.$term.'%')
+                    ->orWhere('brand', 'like', '%'.$term.'%');
+            });
+        }
+
+        foreach (['category', 'brand'] as $field) {
+            if (! empty($filters[$field])) {
+                $query->where($field, $filters[$field]);
+            }
+        }
+
+        if (! empty($filters['form'])) {
+            $query->where('dosage_form', $filters['form']);
+        }
+
+        if (($filters['rx'] ?? null) === 'rx') {
+            $query->where('rx_required', true);
+        } elseif (($filters['rx'] ?? null) === 'otc') {
+            $query->where('rx_required', false);
+        }
+
+        if (isset($filters['max_price'])) {
+            $query->where('price', '<=', $filters['max_price']);
+        }
+
+        if (! empty($filters['min_discount'])) {
+            $query->whereNotNull('mrp')
+                ->whereRaw('mrp > 0 AND ((mrp - price) * 100.0 / mrp) >= ?', [$filters['min_discount']]);
+        }
+
+        if (! empty($filters['min_rating'])) {
+            $query->where('rating', '>=', $filters['min_rating']);
+        }
+
+        match ($filters['sort'] ?? 'relevance') {
+            'price-low' => $query->orderBy('price'),
+            'price-high' => $query->orderByDesc('price'),
+            'discount' => $query->orderByRaw('(mrp - price) / NULLIF(mrp, 0) DESC'),
+            'rating' => $query->orderByDesc('rating')->orderByDesc('review_count'),
+            default => $query->orderByDesc('featured')->orderBy('name'),
+        };
+
+        return view('shop', [
+            'products' => $query->paginate(12)->withQueryString(),
+            'filters' => $filters,
+            'categories' => Product::query()->where('active', true)->distinct()->orderBy('category')->pluck('category'),
+            'brands' => Product::query()->where('active', true)->distinct()->orderBy('brand')->pluck('brand'),
+            'forms' => Product::query()->where('active', true)->distinct()->orderBy('dosage_form')->pluck('dosage_form'),
+        ]);
+    }
+
+    public function showProduct(Product $product): View
+    {
+        abort_unless($product->active, 404);
+
+        return view('product', [
+            'product' => $product,
+            'similarProducts' => Product::query()
+                ->where('active', true)
+                ->where('category', $product->category)
+                ->where('id', '<>', $product->id)
+                ->take(4)
+                ->get(),
+            'frequentlyBought' => Product::query()
+                ->where('active', true)
+                ->where('featured', true)
+                ->where('id', '<>', $product->id)
+                ->take(3)
                 ->get(),
         ]);
     }
 
-    public function cart(): View
+    public function suggestions(Request $request): JsonResponse
     {
-        $cart = session('cart', []);
-        $products = Product::query()->whereIn('id', array_keys($cart))->get();
-        $items = $products->map(fn (Product $product) => [
-            'product' => $product,
-            'quantity' => (int) $cart[$product->id],
-            'line_total' => (int) round((float) $product->price * 100) * (int) $cart[$product->id],
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:60'],
         ]);
 
-        return view('cart', [
-            'items' => $items,
-            'total' => $items->sum('line_total'),
-        ]);
+        $term = trim($validated['q']);
+        $matches = Product::query()
+            ->where('active', true)
+            ->where(function ($builder) use ($term) {
+                $builder->where('name', 'like', '%'.$term.'%')
+                    ->orWhere('category', 'like', '%'.$term.'%')
+                    ->orWhere('brand', 'like', '%'.$term.'%');
+            })
+            ->orderBy('name')
+            ->limit(6)
+            ->get(['name', 'slug', 'category']);
+
+        return response()->json($matches);
+    }
+
+    public function cart(): View
+    {
+        return view('cart', $this->cartSummary());
     }
 
     public function addToCart(Request $request, Product $product): RedirectResponse
     {
         abort_unless($product->active, 404);
+        abort_if($product->stock < 1, 409, 'This demo item is currently out of stock.');
 
         $validated = $request->validate([
             'quantity' => ['sometimes', 'integer', 'min:1', 'max:99'],
+            'go_to_checkout' => ['sometimes', 'in:1'],
         ]);
 
         $cart = session('cart', []);
-        $cart[$product->id] = min(99, (int) ($cart[$product->id] ?? 0) + (int) ($validated['quantity'] ?? 1));
+        $requested = (int) ($validated['quantity'] ?? 1);
+        $cart[$product->id] = min($product->stock, 99, (int) ($cart[$product->id] ?? 0) + $requested);
         session(['cart' => $cart]);
+
+        if (isset($validated['go_to_checkout'])) {
+            return redirect()->route('checkout');
+        }
 
         return back()->with('status', 'Added to your cart.');
     }
@@ -55,9 +176,10 @@ class StoreController extends Controller
     public function updateCart(Request $request, Product $product): RedirectResponse
     {
         abort_unless($product->active, 404);
+        abort_if($product->stock < 1, 409, 'This demo item is currently out of stock.');
 
         $validated = $request->validate([
-            'quantity' => ['required', 'integer', 'min:1', 'max:99'],
+            'quantity' => ['required', 'integer', 'min:1', 'max:'.$product->stock],
         ]);
 
         $cart = session('cart', []);
@@ -78,70 +200,186 @@ class StoreController extends Controller
         return back()->with('status', 'Item removed from your cart.');
     }
 
-    public function checkout(): View|RedirectResponse
+    public function applyCoupon(Request $request): RedirectResponse
     {
-        if (empty(session('cart', []))) {
-            return redirect()->route('cart.index')->with('status', 'Your cart is empty.');
+        $validated = $request->validate([
+            'coupon_code' => ['required', 'string', 'max:30'],
+        ]);
+
+        if (strtoupper(trim($validated['coupon_code'])) !== config('store.coupon_code')) {
+            return back()->withErrors(['coupon_code' => 'That sample offer code is not valid.']);
         }
 
-        return view('checkout', ['total' => $this->cartTotal()]);
+        session(['coupon' => config('store.coupon_code')]);
+
+        return back()->with('status', 'Sample offer applied. Confirm the final offer terms before launch.');
+    }
+
+    public function removeCoupon(): RedirectResponse
+    {
+        session()->forget('coupon');
+
+        return back()->with('status', 'Offer code removed.');
+    }
+
+    public function toggleWishlist(Product $product): RedirectResponse
+    {
+        abort_unless($product->active, 404);
+
+        $wishlist = session('wishlist', []);
+        $key = (string) $product->id;
+
+        if (isset($wishlist[$key])) {
+            unset($wishlist[$key]);
+            $message = 'Removed from your wishlist.';
+        } else {
+            $wishlist[$key] = true;
+            $message = 'Added to your wishlist.';
+        }
+
+        session(['wishlist' => $wishlist]);
+
+        return back()->with('status', $message);
+    }
+
+    public function wishlist(): View
+    {
+        $wishlist = session('wishlist', []);
+
+        return view('wishlist', [
+            'products' => Product::query()
+                ->where('active', true)
+                ->whereIn('id', array_keys($wishlist))
+                ->orderBy('name')
+                ->get(),
+        ]);
+    }
+
+    public function checkout(): View|RedirectResponse
+    {
+        $summary = $this->cartSummary();
+
+        if ($summary['items']->isEmpty()) {
+            return redirect()->route('shop')->with('status', 'Add an item before starting checkout.');
+        }
+
+        return view('checkout', $summary);
     }
 
     public function placeOrder(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'customer_name' => ['required', 'string', 'max:120'],
-            'customer_email' => ['required', 'email', 'max:255'],
-            'shipping_address' => ['required', 'string', 'max:1000'],
-        ]);
-
-        $cart = session('cart', []);
-        if (empty($cart)) {
-            return redirect()->route('cart.index')->with('status', 'Your cart is empty.');
+        $summary = $this->cartSummary();
+        if ($summary['items']->isEmpty()) {
+            return redirect()->route('shop')->with('status', 'Add an item before starting checkout.');
         }
 
-        $order = DB::transaction(function () use ($cart, $validated): Order {
-            $order = Order::query()->create([
-                'order_number' => strtoupper(\Illuminate\Support\Str::random(16)),
-                'customer_name' => $validated['customer_name'],
-                'customer_email' => $validated['customer_email'],
-                'shipping_address' => $validated['shipping_address'],
-                'total' => '0.00',
-                'status' => 'pending',
-            ]);
-            $totalCents = 0;
+        $rules = [
+            'customer_name' => ['required', 'string', 'max:120'],
+            'customer_email' => ['required', 'email', 'max:255'],
+            'customer_phone' => ['required', 'regex:/^[6-9][0-9]{9}$/'],
+            'shipping_address' => ['required', 'string', 'max:1000'],
+            'pincode' => ['required', 'regex:/^[1-9][0-9]{5}$/'],
+            'payment_method' => ['required', 'in:upi,card,net_banking,wallet,cod'],
+            'accept_terms' => ['accepted'],
+        ];
 
-            foreach ($cart as $productId => $quantity) {
-                $product = Product::query()
-                    ->whereKey($productId)
-                    ->where('active', true)
-                    ->lockForUpdate()
-                    ->firstOrFail();
-                $quantity = max(1, min(99, (int) $quantity));
-                $unitPriceCents = (int) round((float) $product->price * 100);
-                $lineTotalCents = $unitPriceCents * $quantity;
-                $totalCents += $lineTotalCents;
+        if ($summary['hasRx']) {
+            $rules['prescription'] = ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:8192'];
+        } else {
+            $rules['prescription'] = ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:8192'];
+        }
 
-                $order->items()->create([
-                    'product_id' => $product->id,
-                    'product_name' => $product->name,
-                    'quantity' => $quantity,
-                    'unit_price' => number_format($unitPriceCents / 100, 2, '.', ''),
-                    'line_total' => number_format($lineTotalCents / 100, 2, '.', ''),
+        $validated = $request->validate($rules);
+        $prescriptionPath = null;
+
+        if ($request->hasFile('prescription')) {
+            $prescriptionPath = $request->file('prescription')->store('prescriptions', 'local');
+            if (! is_string($prescriptionPath)) {
+                throw new RuntimeException('The prescription could not be stored securely. Please retry.');
+            }
+        }
+
+        try {
+            $order = DB::transaction(function () use ($validated, $prescriptionPath): Order {
+                $cart = session('cart', []);
+                $products = [];
+                $mrpTotalCents = 0;
+                $subtotalCents = 0;
+
+                foreach ($cart as $productId => $quantity) {
+                    $product = Product::query()
+                        ->whereKey($productId)
+                        ->where('active', true)
+                        ->lockForUpdate()
+                        ->firstOrFail();
+                    $quantity = max(1, (int) $quantity);
+
+                    if ($quantity > $product->stock) {
+                        throw ValidationException::withMessages([
+                            'cart' => "{$product->name} no longer has the requested quantity available.",
+                        ]);
+                    }
+
+                    $unitPriceCents = $this->toCents($product->price);
+                    $unitMrpCents = $this->toCents($product->mrp ?? $product->price);
+                    $subtotalCents += $unitPriceCents * $quantity;
+                    $mrpTotalCents += $unitMrpCents * $quantity;
+                    $products[] = [$product, $quantity, $unitPriceCents];
+                }
+
+                $couponApplied = session('coupon') === config('store.coupon_code');
+                $couponDiscountCents = $couponApplied
+                    ? (int) round($subtotalCents * config('store.coupon_percent') / 100)
+                    : 0;
+                $deliveryFeeCents = $subtotalCents >= config('store.free_delivery_threshold') * 100
+                    ? 0
+                    : config('store.delivery_fee') * 100;
+                $totalCents = max(0, $subtotalCents - $couponDiscountCents + $deliveryFeeCents);
+                $discountCents = max(0, $mrpTotalCents - $subtotalCents + $couponDiscountCents);
+                $hasRx = collect($products)->contains(fn (array $line) => $line[0]->rx_required);
+
+                $order = Order::query()->create([
+                    'order_number' => strtoupper(Str::random(18)),
+                    'customer_name' => $validated['customer_name'],
+                    'customer_email' => $validated['customer_email'],
+                    'customer_phone' => $validated['customer_phone'],
+                    'shipping_address' => $validated['shipping_address'],
+                    'pincode' => $validated['pincode'],
+                    'payment_method' => $validated['payment_method'],
+                    'mrp_total' => $this->fromCents($mrpTotalCents),
+                    'discount' => $this->fromCents($discountCents),
+                    'delivery_fee' => $this->fromCents($deliveryFeeCents),
+                    'coupon_code' => $couponApplied ? config('store.coupon_code') : null,
+                    'total' => $this->fromCents($totalCents),
+                    'prescription_path' => $prescriptionPath,
+                    'status' => $hasRx ? 'pending_pharmacist_review' : 'demo_order_pending',
                 ]);
+
+                foreach ($products as [$product, $quantity, $unitPriceCents]) {
+                    $order->items()->create([
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'quantity' => $quantity,
+                        'unit_price' => $this->fromCents($unitPriceCents),
+                        'line_total' => $this->fromCents($unitPriceCents * $quantity),
+                    ]);
+                    $product->decrement('stock', $quantity);
+                }
+
+                return $order;
+            });
+        } catch (Throwable $exception) {
+            if ($prescriptionPath !== null) {
+                Storage::disk('local')->delete($prescriptionPath);
             }
 
-            $order->update([
-                'total' => number_format($totalCents / 100, 2, '.', ''),
-            ]);
+            throw $exception;
+        }
 
-            return $order;
-        });
-
-        $request->session()->forget('cart');
+        $request->session()->forget(['cart', 'coupon']);
 
         return redirect()->route('orders.show', $order->order_number)
-            ->with('status', 'Order placed successfully.');
+            ->with('status', 'Demo order recorded. Payment and fulfilment are not connected.');
     }
 
     public function showOrder(string $orderNumber): View
@@ -154,13 +392,140 @@ class StoreController extends Controller
         return view('order', ['order' => $order]);
     }
 
-    private function cartTotal(): int
+    public function subscribe(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+            'consent' => ['accepted'],
+        ]);
+
+        NewsletterSubscriber::query()->firstOrCreate(
+            ['email' => strtolower($validated['email'])],
+            ['consented_at' => now()],
+        );
+
+        return back()->with('status', 'You are subscribed to the sample newsletter list.');
+    }
+
+    public function login(): View
+    {
+        return view('login');
+    }
+
+    public function requestOtp(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'phone' => ['required', 'regex:/^[6-9][0-9]{9}$/'],
+        ]);
+
+        return back()->with('otp_notice', 'OTP sign-in is not enabled. Connect an approved SMS provider before accepting customer accounts.');
+    }
+
+    public function account(): View
+    {
+        return view('account');
+    }
+
+    public function articles(): View
+    {
+        return view('articles');
+    }
+
+    public function policy(string $policy): View
+    {
+        $policies = [
+            'privacy' => [
+                'title' => 'Privacy & health data',
+                'intro' => 'This is a review draft, not a published privacy policy.',
+                'sections' => [
+                    'Document what personal and health-related data the live service collects, why it is needed, who can access it, and how long it is retained.',
+                    'Prescription uploads in this demo are kept on private local storage and are not exposed through a public URL. Production deployment still needs access controls, encryption, retention limits, and a reviewed privacy notice.',
+                    'Publish a contact for privacy requests and obtain legal review for applicable Indian privacy and pharmacy requirements before launch.',
+                ],
+            ],
+            'terms' => [
+                'title' => 'Terms of service',
+                'intro' => 'Replace this draft with terms reviewed for your business and operating jurisdictions.',
+                'sections' => [
+                    'Product information, prices, discounts, availability, and delivery estimates in this demo are placeholders.',
+                    'The demo does not accept payment or establish a real sale. Add final order, cancellation, prescription-review, and customer-support terms before launch.',
+                    'Nothing on this site is a substitute for advice from a registered medical practitioner or pharmacist.',
+                ],
+            ],
+            'shipping' => [
+                'title' => 'Shipping policy',
+                'intro' => 'Delivery pricing and timing are illustrative until a logistics service is configured.',
+                'sections' => [
+                    'The checkout uses sample free-delivery and delivery-fee thresholds. Confirm serviceable pincodes, delivery partners, and timelines before publishing.',
+                    'Prescription items must be reviewed by a qualified pharmacy professional before any fulfilment decision.',
+                ],
+            ],
+            'refund' => [
+                'title' => 'Refund & returns',
+                'intro' => 'This draft requires review against your product types and applicable rules.',
+                'sections' => [
+                    'Do not publish blanket return or refund promises for medicines without confirming legal and operational requirements.',
+                    'Add a real support process, refund timelines, cancellation rules, and payment-provider handling before enabling live orders.',
+                ],
+            ],
+        ];
+
+        abort_unless(isset($policies[$policy]), 404);
+
+        return view('policy', $policies[$policy]);
+    }
+
+    private function cartSummary(): array
     {
         $cart = session('cart', []);
-
-        return Product::query()
+        $products = Product::query()
+            ->where('active', true)
             ->whereIn('id', array_keys($cart))
-            ->get()
-            ->sum(fn (Product $product) => (int) round((float) $product->price * 100) * (int) $cart[$product->id]);
+            ->get();
+
+        $items = $products->map(function (Product $product) use ($cart): array {
+            $quantity = max(0, (int) ($cart[$product->id] ?? 0));
+            $priceCents = $this->toCents($product->price);
+            $mrpCents = $this->toCents($product->mrp ?? $product->price);
+
+            return [
+                'product' => $product,
+                'quantity' => $quantity,
+                'line_total' => $priceCents * $quantity,
+                'line_mrp' => $mrpCents * $quantity,
+            ];
+        })->filter(fn (array $item) => $item['quantity'] > 0)->values();
+
+        $subtotal = (int) $items->sum('line_total');
+        $mrpSubtotal = (int) $items->sum('line_mrp');
+        $couponApplied = session('coupon') === config('store.coupon_code');
+        $couponDiscount = $couponApplied
+            ? (int) round($subtotal * config('store.coupon_percent') / 100)
+            : 0;
+        $deliveryFee = $subtotal >= config('store.free_delivery_threshold') * 100
+            ? 0
+            : config('store.delivery_fee') * 100;
+
+        return [
+            'items' => $items,
+            'subtotal' => $subtotal,
+            'mrpSubtotal' => $mrpSubtotal,
+            'couponDiscount' => $couponDiscount,
+            'discount' => max(0, $mrpSubtotal - $subtotal + $couponDiscount),
+            'deliveryFee' => $deliveryFee,
+            'total' => max(0, $subtotal - $couponDiscount + $deliveryFee),
+            'couponApplied' => $couponApplied,
+            'hasRx' => $items->contains(fn (array $item) => $item['product']->rx_required),
+        ];
+    }
+
+    private function toCents(string|float|int|null $amount): int
+    {
+        return (int) round((float) $amount * 100);
+    }
+
+    private function fromCents(int $amount): string
+    {
+        return number_format($amount / 100, 2, '.', '');
     }
 }
