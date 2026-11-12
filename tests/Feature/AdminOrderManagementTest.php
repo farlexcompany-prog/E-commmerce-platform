@@ -56,6 +56,10 @@ class AdminOrderManagementTest extends TestCase
         $this->actingAs($admin, 'admin')
             ->get(route('admin.dashboard', ['q' => 'Magnesium']))
             ->assertOk()
+            ->assertSee('Dashboard')
+            ->assertSee('Catalog')
+            ->assertSee('Attribute Families')
+            ->assertSee(route('admin.sections.show', 'products'))
             ->assertSee('Maya Patel')
             ->assertSee('maya@example.com')
             ->assertSee('Magnesium Capsules')
@@ -68,6 +72,23 @@ class AdminOrderManagementTest extends TestCase
             ->assertSee('9876543210')
             ->assertSee('Products ordered')
             ->assertSee('Magnesium Capsules');
+    }
+
+    public function test_admin_navigation_sections_open_demo_pages(): void
+    {
+        $admin = $this->makeAdmin();
+
+        foreach (config('admin.sections') as $slug => $section) {
+            $this->actingAs($admin, 'admin')
+                ->get(route('admin.sections.show', $slug))
+                ->assertOk()
+                ->assertSee($section['title'])
+                ->assertSee('Demo page');
+        }
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.sections.show', 'not-a-section'))
+            ->assertNotFound();
     }
 
     public function test_admin_login_rejects_non_admin_accounts(): void
