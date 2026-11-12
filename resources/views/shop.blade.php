@@ -1,21 +1,21 @@
 @extends('layout')
 
-@section('title', 'Shop health essentials | '.config('store.name'))
-@section('meta_description', 'Browse demo pharmacy products by category, dosage form and prescription status.')
+@section('title', $pageContent->value('shop', 'intro', 'title', 'Shop health essentials').' | '.config('store.name'))
+@section('meta_description', $pageContent->value('shop', 'intro', 'description', 'Browse demo pharmacy products by category, dosage form and prescription status.'))
 
 @section('content')
     <div class="container page-shell">
         <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="{{ route('store') }}">Home</a><span aria-hidden="true">/</span><span>Shop</span></nav>
         <header class="page-heading">
-            <p class="eyebrow">Demo catalogue · India</p>
-            <h1>{{ $filters['category'] ?? 'Shop health essentials' }}</h1>
-            <p>These are sample product records with placeholder prices and packaging. Replace all catalogue details with approved manufacturer and pharmacy information.</p>
+            <p class="eyebrow">{{ $pageContent->value('shop', 'intro', 'eyebrow', 'Demo catalogue · India') }}</p>
+            <h1>{{ $filters['category'] ?? $pageContent->value('shop', 'intro', 'title', 'Shop health essentials') }}</h1>
+            <p>{{ $pageContent->value('shop', 'intro', 'description', 'These are sample product records with placeholder prices and packaging. Replace all catalogue details with approved manufacturer and pharmacy information.') }}</p>
         </header>
 
         <button class="button button--outline filter-toggle" type="button" data-filter-toggle aria-controls="shop-filters" aria-expanded="false">Filters</button>
         <div class="shop-layout">
             <aside class="filter-panel" id="shop-filters" aria-label="Product filters">
-                <h2>Filter products</h2>
+                <h2>{{ $pageContent->value('shop', 'filters', 'title', 'Filter products') }}</h2>
                 <form method="GET" action="{{ route('shop') }}">
                     @if (! empty($filters['q'])) <input type="hidden" name="q" value="{{ $filters['q'] }}"> @endif
                     <div class="filter-group">
@@ -101,8 +101,8 @@
 
                 @if ($products->isEmpty())
                     <div class="empty-state">
-                        <h2>No matching products</h2>
-                        <p>Try clearing one or more filters.</p>
+                        <h2>{{ $pageContent->value('shop', 'empty', 'title', 'No matching products') }}</h2>
+                        <p>{{ $pageContent->value('shop', 'empty', 'description', 'Try clearing one or more filters.') }}</p>
                         <a class="button button--outline" href="{{ route('shop') }}">Clear filters</a>
                     </div>
                 @else

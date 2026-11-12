@@ -3,13 +3,16 @@
 @php
     $artStyles = ['tablet', 'capsule', 'bottle', 'tube', 'vial', 'supplement', 'jar', 'device'];
     $artStyle = in_array($product->art_style, $artStyles, true) ? $product->art_style : 'tablet';
+    $imageSource = $product->image_path
+        ? \Illuminate\Support\Facades\Storage::disk('public')->url($product->image_path)
+        : $product->image_url;
 @endphp
 
 <div class="product-art product-art--{{ $artStyle }} product-art--{{ $size }}"
      role="img"
      aria-label="Illustrative demo packaging for {{ $product->name }}">
-    @if ($product->image_url)
-        <img src="{{ $product->image_url }}" alt="{{ $product->name }} packaging" loading="lazy" decoding="async">
+    @if ($imageSource)
+        <img src="{{ $imageSource }}" alt="{{ $product->name }} packaging" loading="lazy" decoding="async">
     @else
         <div class="pack-illustration">
             <span class="pack-demo">DEMO · PLACEHOLDER</span>

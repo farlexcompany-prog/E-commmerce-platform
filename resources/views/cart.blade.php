@@ -1,17 +1,17 @@
 @extends('layout')
 
-@section('title', 'Your cart | '.config('store.name'))
+@section('title', $pageContent->value('cart', 'heading', 'title', 'Your cart').' | '.config('store.name'))
 
 @section('content')
     <div class="container page-shell">
         <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="{{ route('store') }}">Home</a><span aria-hidden="true">/</span><span>Your cart</span></nav>
-        <header class="page-heading"><p class="eyebrow">Review your selection</p><h1>Your cart</h1></header>
+        <header class="page-heading"><p class="eyebrow">{{ $pageContent->value('cart', 'heading', 'eyebrow', 'Review your selection') }}</p><h1>{{ $pageContent->value('cart', 'heading', 'title', 'Your cart') }}</h1></header>
 
         @if ($items->isEmpty())
             <section class="empty-state">
-                <h2>Your cart is waiting for you.</h2>
-                <p>Browse the demo catalogue and add an item to continue.</p>
-                <a class="button" href="{{ route('shop') }}">Browse products</a>
+                <h2>{{ $pageContent->value('cart', 'empty', 'title', 'Your cart is waiting for you.') }}</h2>
+                <p>{{ $pageContent->value('cart', 'empty', 'description', 'Browse the demo catalogue and add an item to continue.') }}</p>
+                <a class="button" href="{{ $pageContent->value('cart', 'empty', 'button_url', '/shop') }}">{{ $pageContent->value('cart', 'empty', 'button_text', 'Browse products') }}</a>
             </section>
         @else
             @if ($hasRx)
@@ -56,7 +56,7 @@
                 </div>
 
                 <aside class="panel summary-panel" aria-label="Price summary">
-                    <h2>Price details</h2>
+                    <h2>{{ $pageContent->value('cart', 'summary', 'title', 'Price details') }}</h2>
                     <div class="summary-line"><span>MRP total</span><span>{{ config('store.currency_symbol') }}{{ number_format($mrpSubtotal / 100, 2) }}</span></div>
                     <div class="summary-line"><span>Product savings</span><span>− {{ config('store.currency_symbol') }}{{ number_format(($mrpSubtotal - $subtotal) / 100, 2) }}</span></div>
                     @if ($couponApplied)
@@ -75,7 +75,7 @@
                     <div class="summary-line"><span>Delivery</span><span>{{ $deliveryFee === 0 ? 'FREE' : config('store.currency_symbol').number_format($deliveryFee / 100, 2) }}</span></div>
                     <div class="summary-line summary-line--total"><span>Estimated total</span><span>{{ config('store.currency_symbol') }}{{ number_format($total / 100, 2) }}</span></div>
                     <p class="summary-note">Sample pricing only. Final tax, delivery, discount and order terms must be configured before launch.</p>
-                    <a class="button button--full" href="{{ route('checkout') }}">Continue to checkout</a>
+                    <a class="button button--full" href="{{ route('checkout') }}">{{ $pageContent->value('cart', 'summary', 'checkout_button', 'Continue to checkout') }}</a>
                     <p class="summary-note">Payment options are displayed for demo only; no payment is collected.</p>
                 </aside>
             </div>

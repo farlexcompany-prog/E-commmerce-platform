@@ -15,12 +15,12 @@
 <body>
     <div class="announcement">
         <div class="container announcement__inner">
-            <span>Free delivery above {{ config('store.currency_symbol') }}{{ config('store.free_delivery_threshold') }}</span>
+            <span>{{ $pageContent->value('site', 'announcement', 'delivery', 'Free delivery above '.config('store.currency_symbol').config('store.free_delivery_threshold')) }}</span>
             <span class="announcement__divider" aria-hidden="true">•</span>
-            <span>Prescription checks for Rx products</span>
+            <span>{{ $pageContent->value('site', 'announcement', 'prescription', 'Prescription checks for Rx products') }}</span>
             <span class="announcement__divider" aria-hidden="true">•</span>
-            <span>Use code <strong>{{ config('store.coupon_code') }}</strong></span>
-            <a href="{{ route('shop') }}" class="announcement__link">Explore the demo range</a>
+            <span>{{ $pageContent->value('site', 'announcement', 'coupon', 'Use code '.config('store.coupon_code')) }}</span>
+            <a href="{{ route('shop') }}" class="announcement__link">{{ $pageContent->value('site', 'announcement', 'link_text', 'Explore the demo range') }}</a>
         </div>
     </div>
 
@@ -58,12 +58,12 @@
             </div>
 
             <nav class="primary-nav" aria-label="Main navigation">
-                <a href="{{ route('shop') }}">Medicines</a>
-                <a href="{{ route('shop', ['category' => 'Healthcare Devices']) }}">Healthcare Devices</a>
-                <a href="{{ route('shop', ['category' => 'Vitamins & Supplements']) }}">Vitamins & Supplements</a>
-                <a href="{{ route('shop', ['category' => 'Diabetes Care']) }}">Diabetes Care</a>
+                <a href="{{ route('shop') }}">{{ $pageContent->value('site', 'navigation', 'medicines', 'Medicines') }}</a>
+                <a href="{{ route('shop', ['category' => 'Healthcare Devices']) }}">{{ $pageContent->value('site', 'navigation', 'devices', 'Healthcare Devices') }}</a>
+                <a href="{{ route('shop', ['category' => 'Vitamins & Supplements']) }}">{{ $pageContent->value('site', 'navigation', 'supplements', 'Vitamins & Supplements') }}</a>
+                <a href="{{ route('shop', ['category' => 'Diabetes Care']) }}">{{ $pageContent->value('site', 'navigation', 'diabetes', 'Diabetes Care') }}</a>
                 <details class="nav-menu">
-                    <summary>More categories <span aria-hidden="true">⌄</span></summary>
+                    <summary>{{ $pageContent->value('site', 'navigation', 'more', 'More categories') }} <span aria-hidden="true">⌄</span></summary>
                     <div class="mega-menu">
                         <div>
                             <h2>Shop health essentials</h2>
@@ -79,7 +79,7 @@
                         </div>
                     </div>
                 </details>
-                <a class="nav-offer" href="{{ route('shop', ['sort' => 'discount']) }}">Offers <span>FIRST10</span></a>
+                <a class="nav-offer" href="{{ route('shop', ['sort' => 'discount']) }}">{{ $pageContent->value('site', 'navigation', 'offers', 'Offers') }} <span>{{ config('store.coupon_code') }}</span></a>
                 <span class="language-note" title="Hindi translations are not configured yet">EN <span aria-hidden="true">·</span> हिंदी soon</span>
             </nav>
         </div>
@@ -101,7 +101,7 @@
         </div>
     @endif
 
-    <main id="main-content">
+    <main id="main-content" class="{{ $__env->yieldContent('page-layout-class') }}">
         @yield('content')
     </main>
 
@@ -112,7 +112,7 @@
                     <a class="brand-lockup brand-lockup--light" href="{{ route('store') }}">
                         <img class="brand-logo" src="{{ asset('images/farlex-logo.png') }}" alt="{{ config('store.name') }}" width="145" height="84" loading="lazy" decoding="async">
                     </a>
-                    <p>Demo storefront. Product, regulatory, contact and policy details must be reviewed before launch.</p>
+                    <p>{{ $pageContent->value('site', 'footer', 'intro', 'Demo storefront. Product, regulatory, contact and policy details must be reviewed before launch.') }}</p>
                     <div class="social-links" aria-label="Farlex social media profiles">
                         @foreach (config('store.social_links') as $social)
                             <a class="social-link" href="{{ $social['url'] }}" target="_blank" rel="noopener noreferrer" aria-label="{{ $social['name'] }}: {{ $social['label'] }} (opens in a new tab)">
@@ -127,31 +127,28 @@
                     </div>
                 </div>
                 <div class="footer-column">
-                    <h2>Explore</h2>
+                    <h2>{{ $pageContent->value('site', 'footer', 'explore_heading', 'Explore') }}</h2>
                     <a href="{{ route('shop') }}">Shop all</a>
                     <a href="{{ route('articles') }}">Health articles</a>
                     <a href="{{ route('wishlist.index') }}">Wishlist</a>
                     <a href="{{ route('account') }}">My account</a>
                 </div>
                 <div class="footer-column">
-                    <h2>Help & policies</h2>
+                    <h2>{{ $pageContent->value('site', 'footer', 'help_heading', 'Help & policies') }}</h2>
                     <a href="{{ route('policies.show', 'shipping') }}">Shipping policy</a>
                     <a href="{{ route('policies.show', 'refund') }}">Refund policy draft</a>
                     <a href="{{ route('policies.show', 'privacy') }}">Privacy & health data</a>
                     <a href="{{ route('policies.show', 'terms') }}">Terms of service</a>
                 </div>
                 <div class="footer-column footer-contact" id="support-contact">
-                    <h2>Contact & compliance</h2>
+                    <h2>{{ $pageContent->value('site', 'footer', 'contact_heading', 'Contact & compliance') }}</h2>
                     <span>{{ config('store.support_email') }}</span>
                     <span>{{ config('store.support_phone') }}</span>
                     <span>Drug licence: {{ config('store.drug_licence') }}</span>
                     <span>Pharmacist registration: {{ config('store.pharmacist_registration') }}</span>
                 </div>
             </div>
-            <div class="footer-disclaimer">
-                <strong>Important:</strong> Medicines should be taken only as directed by a registered medical practitioner.
-                Demo catalogue copy and prices are placeholders; prescription review, customer accounts and payment processing are not live.
-            </div>
+            <div class="footer-disclaimer">{{ $pageContent->value('site', 'footer', 'disclaimer', 'Medicines should be taken only as directed by a registered medical practitioner. Demo catalogue copy and prices are placeholders; prescription review, customer accounts and payment processing are not live.') }}</div>
             <div class="footer-bottom">
                 <span>© {{ date('Y') }} {{ config('store.name') }} · Demo storefront</span>
                 <span>UPI · Cards · Net banking · Wallets · COD <small>(payment gateway not connected)</small></span>

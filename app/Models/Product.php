@@ -25,6 +25,8 @@ class Product extends Model
         'featured',
         'stock',
         'image_url',
+        'image_path',
+        'video_path',
         'active',
     ];
 

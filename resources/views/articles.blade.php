@@ -1,16 +1,41 @@
 @extends('layout')
 
-@section('title', 'Health & product guides | '.config('store.name'))
+@section('title', $pageContent->value('articles', 'heading', 'title', 'Health & product guides').' | '.config('store.name'))
 
 @section('content')
-    <div class="container page-shell">
-        <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="{{ route('store') }}">Home</a><span aria-hidden="true">/</span><span>Health articles</span></nav>
-        <header class="page-heading"><p class="eyebrow">General information</p><h1>Health & product guides</h1><p>These general reading notes do not diagnose, treat, or replace advice from a registered medical practitioner or pharmacist.</p></header>
-        <div class="article-body">
-            <section id="product-labels"><p class="eyebrow">Product information</p><h2>How to read a product label</h2><p>Check the product name, pack size, manufacturer details, batch information, expiry date, and storage instructions on the original packaging. Ask a pharmacist if any information is unclear.</p></section>
-            <section id="storage"><p class="eyebrow">Everyday care</p><h2>Keep products in original packaging</h2><p>Follow the storage information supplied with the specific product and keep items away from children. Do not use products past their printed expiry date or if packaging appears damaged.</p></section>
-            <section id="pharmacist"><p class="eyebrow">Pharmacy support</p><h2>Questions to ask your pharmacist</h2><p>Ask a qualified pharmacist about the instructions on your product label, possible interactions, and how to store a product. For diagnosis or treatment advice, consult a registered medical practitioner.</p></section>
-            <div class="medical-disclaimer">This demo content is general and not medical advice. Product-specific information must be reviewed by qualified professionals before publication.</div>
-        </div>
+    @php
+        $articleSections = collect([
+            'heading' => ['order' => 10],
+            'article_one' => ['order' => 20],
+            'article_two' => ['order' => 30],
+            'article_three' => ['order' => 40],
+            'disclaimer' => ['order' => 50],
+        ])->sortBy(fn ($section, $key) => $pageContent->order('articles', $key, $section['order']));
+    @endphp
+    <div class="container page-shell cms-sortable-page">
+        <nav class="breadcrumbs" aria-label="Breadcrumb" style="order: -1"><a href="{{ route('store') }}">Home</a><span aria-hidden="true">/</span><span>Health articles</span></nav>
+        @foreach ($articleSections as $sectionKey => $section)
+            @if ($sectionKey === 'heading')
+                <header class="page-heading" style="order: {{ $pageContent->order('articles', 'heading', 10) }}">
+                    <p class="eyebrow">{{ $pageContent->value('articles', 'heading', 'eyebrow', 'General information') }}</p>
+                    <h1>{{ $pageContent->value('articles', 'heading', 'title', 'Health & product guides') }}</h1>
+                    <p>{{ $pageContent->value('articles', 'heading', 'description', 'These general reading notes do not diagnose, treat, or replace advice from a registered medical practitioner or pharmacist.') }}</p>
+                </header>
+            @elseif ($sectionKey === 'disclaimer')
+                <div class="medical-disclaimer cms-article-content" style="order: {{ $pageContent->order('articles', 'disclaimer', 50) }}">{{ $pageContent->value('articles', 'disclaimer', 'copy', 'This demo content is general and not medical advice. Product-specific information must be reviewed by qualified professionals before publication.') }}</div>
+            @elseif ($pageContent->enabled('articles', $sectionKey))
+                @php
+                    $anchors = ['article_one' => 'product-labels', 'article_two' => 'storage', 'article_three' => 'pharmacist'];
+                @endphp
+                <section class="cms-article-content" id="{{ $anchors[$sectionKey] }}" style="order: {{ $pageContent->order('articles', $sectionKey, $section['order']) }}">
+                    <p class="eyebrow">{{ $pageContent->value('articles', $sectionKey, 'eyebrow', '') }}</p>
+                    <h2>{{ $pageContent->value('articles', $sectionKey, 'title', '') }}</h2>
+                    @if ($pageContent->imageUrl('articles', $sectionKey, 'image'))
+                        <img class="cms-article-image" src="{{ $pageContent->imageUrl('articles', $sectionKey, 'image') }}" alt="{{ $pageContent->value('articles', $sectionKey, 'title', '') }}" loading="lazy">
+                    @endif
+                    <p>{{ $pageContent->value('articles', $sectionKey, 'copy', '') }}</p>
+                </section>
+            @endif
+        @endforeach
     </div>
 @endsection

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\NewsletterSubscriber;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\PageContent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,8 +19,33 @@ use Throwable;
 
 class StoreController extends Controller
 {
-    public function index(): View
+    public function index(PageContent $pageContent): View
     {
+        $bannerSections = ['banner_one', 'banner_two', 'banner_three'];
+        $banners = collect(config('store.banners'))
+            ->values()
+            ->map(function (array $banner, int $index) use ($pageContent, $bannerSections): ?array {
+                $section = $bannerSections[$index] ?? null;
+                if ($section === null || ! $pageContent->enabled('home', $section)) {
+                    return null;
+                }
+
+                return [
+                    'tone' => $banner['tone'],
+                    'eyebrow' => $pageContent->value('home', $section, 'eyebrow', $banner['eyebrow']),
+                    'title' => $pageContent->value('home', $section, 'title', $banner['title']),
+                    'copy' => $pageContent->value('home', $section, 'copy', $banner['copy']),
+                    'url' => $pageContent->value('home', $section, 'button_url', $banner['url']),
+                    'cta' => $pageContent->value('home', $section, 'button_text', $banner['cta']),
+                    'image' => $pageContent->imageUrl('home', $section, 'image'),
+                    'order' => $pageContent->order('home', $section, $banner['order'] ?? (($index + 1) * 10)),
+                ];
+            })
+            ->filter()
+            ->sortBy('order')
+            ->values()
+            ->all();
+
         return view('store', [
             'featuredProducts' => Product::query()
                 ->where('active', true)
@@ -29,7 +55,7 @@ class StoreController extends Controller
                 ->get(),
             'categories' => config('store.categories'),
             'concerns' => config('store.concerns'),
-            'banners' => config('store.banners'),
+            'banners' => $banners,
         ]);
     }
 
@@ -431,48 +457,23 @@ class StoreController extends Controller
         return view('articles');
     }
 
-    public function policy(string $policy): View
+    public function policy(string $policy, PageContent $pageContent): View
     {
-        $policies = [
-            'privacy' => [
-                'title' => 'Privacy & health data',
-                'intro' => 'This is a review draft, not a published privacy policy.',
-                'sections' => [
-                    'Document what personal and health-related data the live service collects, why it is needed, who can access it, and how long it is retained.',
-                    'Prescription uploads in this demo are kept on private local storage and are not exposed through a public URL. Production deployment still needs access controls, encryption, retention limits, and a reviewed privacy notice.',
-                    'Publish a contact for privacy requests and obtain legal review for applicable Indian privacy and pharmacy requirements before launch.',
-                ],
-            ],
-            'terms' => [
-                'title' => 'Terms of service',
-                'intro' => 'Replace this draft with terms reviewed for your business and operating jurisdictions.',
-                'sections' => [
-                    'Product information, prices, discounts, availability, and delivery estimates in this demo are placeholders.',
-                    'The demo does not accept payment or establish a real sale. Add final order, cancellation, prescription-review, and customer-support terms before launch.',
-                    'Nothing on this site is a substitute for advice from a registered medical practitioner or pharmacist.',
-                ],
-            ],
-            'shipping' => [
-                'title' => 'Shipping policy',
-                'intro' => 'Delivery pricing and timing are illustrative until a logistics service is configured.',
-                'sections' => [
-                    'The checkout uses sample free-delivery and delivery-fee thresholds. Confirm serviceable pincodes, delivery partners, and timelines before publishing.',
-                    'Prescription items must be reviewed by a qualified pharmacy professional before any fulfilment decision.',
-                ],
-            ],
-            'refund' => [
-                'title' => 'Refund & returns',
-                'intro' => 'This draft requires review against your product types and applicable rules.',
-                'sections' => [
-                    'Do not publish blanket return or refund promises for medicines without confirming legal and operational requirements.',
-                    'Add a real support process, refund timelines, cancellation rules, and payment-provider handling before enabling live orders.',
-                ],
-            ],
-        ];
+        $definition = config("cms.pages.{$policy}");
+        abort_unless(is_array($definition), 404);
 
-        abort_unless(isset($policies[$policy]), 404);
+        $fields = $definition['sections']['policy']['fields'];
+        $sections = collect(['section_one', 'section_two', 'section_three'])
+            ->map(fn (string $field) => $pageContent->value($policy, 'policy', $field, $fields[$field]['default'] ?? ''))
+            ->filter(fn ($content) => is_string($content) && trim($content) !== '')
+            ->values()
+            ->all();
 
-        return view('policy', $policies[$policy]);
+        return view('policy', [
+            'title' => $pageContent->value($policy, 'policy', 'title', $fields['title']['default']),
+            'intro' => $pageContent->value($policy, 'policy', 'intro', $fields['intro']['default']),
+            'sections' => $sections,
+        ]);
     }
 
     private function cartSummary(): array

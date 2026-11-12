@@ -22,6 +22,12 @@
                 <div data-gallery-main>
                     <x-product-art :product="$product" size="detail" />
                 </div>
+                @if ($product->video_path)
+                    <video class="product-detail-video" controls preload="metadata">
+                        <source src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($product->video_path) }}">
+                        Your browser does not support product videos.
+                    </video>
+                @endif
                 <div class="gallery-thumbnails" aria-label="Demo packaging views">
                     @foreach ([$product->art_style, 'device', 'bottle', 'tablet'] as $index => $style)
                         <button type="button" class="gallery-thumb {{ $index === 0 ? 'is-active' : '' }}" data-gallery-thumb="{{ $style }}" aria-pressed="{{ $index === 0 ? 'true' : 'false' }}" aria-label="Show demo placeholder view {{ $index + 1 }}">
@@ -48,11 +54,11 @@
                         <span class="discount-pill">{{ $discountPercent }}% off</span>
                     @endif
                 </div>
-                <p class="tax-note">Demo price, not for sale · Confirm applicable tax treatment before launch</p>
+                <p class="tax-note">{{ $pageContent->value('product', 'product_info', 'tax_note', 'Demo price, not for sale · Confirm applicable tax treatment before launch') }}</p>
                 <div class="product-info-badges">
                     <span class="info-chip">{{ $product->pack_size }}</span>
-                    <span class="info-chip">Demo listing</span>
-                    <span class="info-chip">Stock: {{ $product->stock > 0 ? 'Available in demo' : 'Unavailable' }}</span>
+                    <span class="info-chip">{{ $pageContent->value('product', 'product_info', 'demo_label', 'Demo listing') }}</span>
+                    <span class="info-chip">{{ $pageContent->value('product', 'product_info', 'stock_label', 'Stock:') }} {{ $product->stock > 0 ? 'Available in demo' : 'Unavailable' }}</span>
                 </div>
 
                 <div class="pack-picker" aria-label="Pack size">
@@ -67,12 +73,12 @@
                             <option value="{{ $quantity }}">{{ $quantity }}</option>
                         @endfor
                     </select>
-                    <button class="button" type="submit">Add to cart</button>
-                    <button class="button button--soft" type="submit" name="go_to_checkout" value="1">Buy now</button>
+                    <button class="button" type="submit">{{ $pageContent->value('product', 'product_info', 'add_to_cart', 'Add to cart') }}</button>
+                    <button class="button button--soft" type="submit" name="go_to_checkout" value="1">{{ $pageContent->value('product', 'product_info', 'buy_now', 'Buy now') }}</button>
                 </form>
                 <form method="POST" action="{{ route('wishlist.toggle', $product) }}">
                     @csrf
-                    <button class="button button--outline" type="submit">♡ Add to wishlist</button>
+                    <button class="button button--outline" type="submit">{{ $pageContent->value('product', 'product_info', 'wishlist', '♡ Add to wishlist') }}</button>
                 </form>
 
                 <form class="delivery-check" data-pincode-check>
@@ -101,12 +107,12 @@
                         </details>
                     @endforeach
                 </div>
-                <div class="medical-disclaimer">Medicines should be taken only as directed by a registered medical practitioner. Product information shown here is a demo placeholder and must be replaced with approved label copy.</div>
+                <div class="medical-disclaimer">{{ $pageContent->value('product', 'product_info', 'medical_disclaimer', 'Medicines should be taken only as directed by a registered medical practitioner. Product information shown here is a demo placeholder and must be replaced with approved label copy.') }}</div>
             </section>
         </div>
 
         <section class="subsection">
-            <div class="section-heading"><div><p class="eyebrow">Explore similar items</p><h2>More in {{ $product->category }}</h2></div><a class="text-link" href="{{ route('shop', ['category' => $product->category]) }}">View category →</a></div>
+            <div class="section-heading"><div><p class="eyebrow">Explore similar items</p><h2>{{ $pageContent->value('product', 'product_info', 'similar_title', 'More in') }} {{ $product->category }}</h2></div><a class="text-link" href="{{ route('shop', ['category' => $product->category]) }}">View category →</a></div>
             <div class="product-grid">
                 @forelse ($similarProducts as $similarProduct)
                     <x-product-card :product="$similarProduct" />
@@ -117,7 +123,7 @@
         </section>
 
         <section class="subsection">
-            <div class="section-heading"><div><p class="eyebrow">Frequently explored</p><h2>More demo products</h2></div></div>
+            <div class="section-heading"><div><p class="eyebrow">Frequently explored</p><h2>{{ $pageContent->value('product', 'product_info', 'frequently_title', 'More demo products') }}</h2></div></div>
             <div class="product-scroller">
                 @foreach ($frequentlyBought as $relatedProduct)
                     <x-product-card :product="$relatedProduct" />
@@ -128,8 +134,8 @@
         <section class="subsection" id="reviews">
             <div class="panel">
                 <p class="eyebrow">Customer reviews</p>
-                <h2>No verified reviews yet</h2>
-                <p class="muted">Reviews and ratings will appear after a verified review collection and moderation process is configured.</p>
+                <h2>{{ $pageContent->value('product', 'product_info', 'reviews_title', 'No verified reviews yet') }}</h2>
+                <p class="muted">{{ $pageContent->value('product', 'product_info', 'reviews_copy', 'Reviews and ratings will appear after a verified review collection and moderation process is configured.') }}</p>
             </div>
         </section>
     </div>
@@ -139,7 +145,7 @@
         <form method="POST" action="{{ route('cart.store', $product) }}">
             @csrf
             <input type="hidden" name="quantity" value="1">
-            <button type="submit" class="button button--small">Add to cart</button>
+            <button type="submit" class="button button--small">{{ $pageContent->value('product', 'product_info', 'add_to_cart', 'Add to cart') }}</button>
         </form>
     </div>
 @endsection

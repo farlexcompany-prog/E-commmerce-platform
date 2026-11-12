@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminOrderController;
+use App\Http\Controllers\Admin\AdminPageController;
+use App\Http\Controllers\Admin\AdminProductController;
 use App\Http\Controllers\Admin\AdminSectionController;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Controllers\StoreController;
@@ -38,6 +40,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware(EnsureAdmin::class)->group(function () {
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
         Route::get('/dashboard', [AdminOrderController::class, 'index'])->name('dashboard');
+        Route::get('/sales/orders', [AdminOrderController::class, 'index'])->name('sales.orders');
+        Route::get('/orders/export', [AdminOrderController::class, 'export'])->name('orders.export');
+        Route::get('/pages', [AdminPageController::class, 'index'])->name('pages.index');
+        Route::get('/pages/{pageKey}/edit', [AdminPageController::class, 'edit'])->where('pageKey', '[a-z0-9-]+')->name('pages.edit');
+        Route::put('/pages/{pageKey}', [AdminPageController::class, 'update'])->where('pageKey', '[a-z0-9-]+')->name('pages.update');
+        Route::get('/catalog/products', [AdminProductController::class, 'index'])->name('catalog.products');
+        Route::get('/catalog/products/create', [AdminProductController::class, 'create'])->name('catalog.products.create');
+        Route::post('/catalog/products', [AdminProductController::class, 'store'])->name('catalog.products.store');
+        Route::get('/catalog/products/{product}/edit', [AdminProductController::class, 'edit'])->name('catalog.products.edit');
+        Route::put('/catalog/products/{product}', [AdminProductController::class, 'update'])->name('catalog.products.update');
         Route::get('/sections/{section}', [AdminSectionController::class, 'show'])->name('sections.show');
         Route::get('/orders/{orderNumber}', [AdminOrderController::class, 'show'])
             ->where('orderNumber', '[A-Z0-9]+')

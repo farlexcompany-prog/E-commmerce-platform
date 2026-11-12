@@ -4,9 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Order;
 use App\Models\Admin;
+use App\Models\CmsPage;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdminOrderManagementTest extends TestCase
@@ -19,6 +23,18 @@ class AdminOrderManagementTest extends TestCase
             ->assertRedirect(route('admin.dashboard'));
 
         $this->get(route('admin.dashboard'))
+            ->assertRedirect(route('admin.login'));
+
+        $this->get(route('admin.catalog.products'))
+            ->assertRedirect(route('admin.login'));
+
+        $this->get(route('admin.catalog.products.create'))
+            ->assertRedirect(route('admin.login'));
+
+        $this->get(route('admin.sales.orders'))
+            ->assertRedirect(route('admin.login'));
+
+        $this->get(route('admin.pages.index'))
             ->assertRedirect(route('admin.login'));
     }
 
@@ -59,7 +75,7 @@ class AdminOrderManagementTest extends TestCase
             ->assertSee('Dashboard')
             ->assertSee('Catalog')
             ->assertSee('Attribute Families')
-            ->assertSee(route('admin.sections.show', 'products'))
+            ->assertSee(route('admin.catalog.products'))
             ->assertSee('Maya Patel')
             ->assertSee('maya@example.com')
             ->assertSee('Magnesium Capsules')
@@ -72,6 +88,267 @@ class AdminOrderManagementTest extends TestCase
             ->assertSee('9876543210')
             ->assertSee('Products ordered')
             ->assertSee('Magnesium Capsules');
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.sales.orders', ['q' => 'Magnesium', 'per_page' => 10]))
+            ->assertOk()
+            ->assertSee('1 Results')
+            ->assertSee('Pay by · Upi')
+            ->assertSee('Farlex Store')
+            ->assertSee('Magnesium Capsules');
+
+        $export = $this->actingAs($admin, 'admin')
+            ->get(route('admin.orders.export', ['q' => 'Magnesium']));
+        $export->assertDownload('farlex-orders.csv');
+        $this->assertStringContainsString('Maya Patel', $export->streamedContent());
+    }
+
+    public function test_sales_orders_page_matches_the_orders_workspace_and_hides_removed_navigation(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.sales.orders'))
+            ->assertOk()
+            ->assertSee('Orders')
+            ->assertSee('Grand Total / Pay Via / Channel')
+            ->assertSee('Customer / Email / Location')
+            ->assertSee('Filter')
+            ->assertSee('Per Page')
+            ->assertSee('Shipments')
+            ->assertSee('Invoices')
+            ->assertSee('Refunds')
+            ->assertSee('Transactions')
+            ->assertSee('Bookings')
+            ->assertDontSee('Marketing')
+            ->assertDontSee('Reporting')
+            ->assertDontSee('Settings')
+            ->assertDontSee('Configure');
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.sections.show', 'sales'))
+            ->assertRedirect(route('admin.sales.orders'));
+
+        foreach (['settings', 'configure'] as $removedSection) {
+            $this->actingAs($admin, 'admin')
+                ->get(route('admin.sections.show', $removedSection))
+                ->assertNotFound();
+        }
+    }
+
+    public function test_admin_can_filter_products_in_the_catalog(): void
+    {
+        $admin = $this->makeAdmin();
+        $visibleProduct = Product::query()->create([
+            'name' => 'Sample OTC Tablet Pack',
+            'slug' => 'sample-otc-tablet-pack',
+            'description' => 'Reviewed demo product information.',
+            'category' => 'Medicines',
+            'brand' => 'Farlex Demo',
+            'dosage_form' => 'Tablet',
+            'pack_size' => '10 tablets',
+            'price' => 149,
+            'mrp' => 179,
+            'stock' => 12,
+            'rx_required' => false,
+            'active' => true,
+        ]);
+        Product::query()->create([
+            'name' => 'Inactive Rx Capsule',
+            'slug' => 'inactive-rx-capsule',
+            'description' => 'Reviewed demo product information.',
+            'category' => 'Medicines',
+            'brand' => 'Farlex Demo',
+            'dosage_form' => 'Capsule',
+            'price' => 199,
+            'stock' => 0,
+            'rx_required' => true,
+            'active' => false,
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.catalog.products', [
+                'q' => 'Sample',
+                'category' => 'Medicines',
+                'status' => 'active',
+                'rx' => 'otc',
+            ]))
+            ->assertOk()
+            ->assertSee($visibleProduct->name)
+            ->assertSee('12 units')
+            ->assertDontSee('Inactive Rx Capsule')
+            ->assertSee('Total products');
+    }
+
+    public function test_admin_can_edit_and_reorder_storefront_content_and_upload_a_banner(): void
+    {
+        Storage::fake('public');
+        $admin = $this->makeAdmin();
+
+        $this->get(route('store'))->assertOk();
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.pages.index'))
+            ->assertOk()
+            ->assertSee('Pages')
+            ->assertSee('Home page')
+            ->assertSee('Privacy policy');
+
+        $payload = $this->cmsPagePayload('home');
+        $payload['content']['fields']['banner_one']['title'] = 'CMS featured banner';
+        $payload['content']['sections']['categories']['order'] = 1;
+        $payload['content']['sections']['categories']['enabled'] = false;
+        $payload['media']['banner_one']['image'] = UploadedFile::fake()->createWithContent(
+            'homepage-banner.png',
+            file_get_contents(public_path('images/farlex-logo.png')),
+        );
+
+        $this->actingAs($admin, 'admin')
+            ->put(route('admin.pages.update', 'home'), $payload)
+            ->assertRedirect(route('admin.pages.edit', 'home'))
+            ->assertSessionHas('status', 'Page content updated.');
+
+        $page = CmsPage::query()->where('page_key', 'home')->firstOrFail();
+        $this->assertSame('CMS featured banner', $page->content['fields']['banner_one']['title']);
+        $this->assertSame(1, $page->content['sections']['categories']['order']);
+        $this->assertFalse($page->content['sections']['categories']['enabled']);
+        Storage::disk('public')->assertExists($page->content['fields']['banner_one']['image']);
+
+        $this->get(route('store'))
+            ->assertOk()
+            ->assertSee('CMS featured banner')
+            ->assertSee(Storage::disk('public')->url($page->content['fields']['banner_one']['image']), false)
+            ->assertDontSee('<h2>Shop by category</h2>', false);
+
+        $policyPayload = $this->cmsPagePayload('privacy');
+        $policyPayload['content']['fields']['policy']['intro'] = 'Customized privacy policy introduction.';
+        $this->actingAs($admin, 'admin')
+            ->put(route('admin.pages.update', 'privacy'), $policyPayload)
+            ->assertRedirect(route('admin.pages.edit', 'privacy'));
+        $this->get(route('policies.show', 'privacy'))
+            ->assertOk()
+            ->assertSee('Customized privacy policy introduction.');
+    }
+
+    public function test_admin_cannot_save_unsafe_page_links(): void
+    {
+        $admin = $this->makeAdmin();
+        $payload = $this->cmsPagePayload('home');
+        $payload['content']['fields']['banner_one']['button_url'] = 'javascript:alert(1)';
+
+        $this->actingAs($admin, 'admin')
+            ->put(route('admin.pages.update', 'home'), $payload)
+            ->assertSessionHasErrors('content.fields.banner_one.button_url');
+
+        $this->assertDatabaseMissing('cms_pages', ['page_key' => 'home']);
+    }
+
+    public function test_admin_can_create_and_update_product_descriptions(): void
+    {
+        Storage::fake('public');
+
+        $admin = $this->makeAdmin();
+        $productData = [
+            'name' => 'Farlex Iron Capsules',
+            'slug' => '',
+            'description' => 'Product description reviewed against the approved package.',
+            'category' => 'Supplements',
+            'brand' => 'Farlex',
+            'manufacturer' => 'Farlex Pharmaceuticals',
+            'pack_size' => '30 capsules',
+            'dosage_form' => 'Capsule',
+            'rx_required' => '1',
+            'price' => '149.00',
+            'mrp' => '179.00',
+            'stock' => '24',
+            'art_style' => 'capsule',
+            'image' => UploadedFile::fake()->createWithContent(
+                'farlex-iron.png',
+                file_get_contents(public_path('images/farlex-logo.png')),
+            ),
+            'video' => UploadedFile::fake()->createWithContent(
+                'farlex-iron.mp4',
+                "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom",
+            ),
+            'details' => [
+                'composition' => 'Iron 10 mg',
+                'uses' => 'Use only as directed by a healthcare professional.',
+                'dosage' => 'Follow the approved product label.',
+                'side_effects' => 'See approved product information.',
+                'warnings' => 'Consult a registered medical practitioner.',
+                'storage' => 'Store as directed on the package.',
+                'faqs' => 'Ask a registered pharmacist for product-specific advice.',
+            ],
+        ];
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.catalog.products.create'))
+            ->assertOk()
+            ->assertSee('Composition / salt')
+            ->assertSee('Warnings and precautions')
+            ->assertSee('Required product photos and video')
+            ->assertSee('Product video *')
+            ->assertSee('multipart/form-data');
+
+        $missingMedia = $productData;
+        unset($missingMedia['image'], $missingMedia['video']);
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.catalog.products.store'), $missingMedia)
+            ->assertSessionHasErrors(['image', 'video']);
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.catalog.products.store'), $productData)
+            ->assertRedirect(route('admin.catalog.products'))
+            ->assertSessionHas('status', 'Product added to the catalog.');
+
+        $product = Product::query()->where('slug', 'farlex-iron-capsules')->firstOrFail();
+        $this->assertSame('Iron 10 mg', $product->details['composition']);
+        $this->assertTrue($product->rx_required);
+        $this->assertFalse($product->active);
+        Storage::disk('public')->assertExists($product->image_path);
+        Storage::disk('public')->assertExists($product->video_path);
+
+        $product->update(['active' => true]);
+        $this->get(route('products.show', $product))
+            ->assertOk()
+            ->assertSee(Storage::disk('public')->url($product->image_path), false)
+            ->assertSee(Storage::disk('public')->url($product->video_path), false);
+        $originalImagePath = $product->image_path;
+        $originalVideoPath = $product->video_path;
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.catalog.products.edit', $product))
+            ->assertOk()
+            ->assertDontSee('Product photo *')
+            ->assertDontSee('Product video *')
+            ->assertDontSee('name="image"', false)
+            ->assertDontSee('name="video"', false);
+
+        $productData['name'] = 'Farlex Iron Tablets';
+        $productData['rx_required'] = '0';
+        $productData['active'] = '1';
+        $productData['details']['composition'] = 'Iron 20 mg';
+        unset($productData['image'], $productData['video']);
+
+        $this->actingAs($admin, 'admin')
+            ->put(route('admin.catalog.products.update', $product), $productData)
+            ->assertRedirect(route('admin.catalog.products'))
+            ->assertSessionHas('status', 'Product details updated.');
+
+        $product->refresh();
+        $this->assertSame('farlex-iron-tablets', $product->slug);
+        $this->assertSame('Iron 20 mg', $product->details['composition']);
+        $this->assertFalse($product->rx_required);
+        $this->assertTrue($product->active);
+        $this->assertSame($originalImagePath, $product->image_path);
+        $this->assertSame($originalVideoPath, $product->video_path);
+        Storage::disk('public')->assertExists($originalImagePath);
+        Storage::disk('public')->assertExists($originalVideoPath);
+
+        $this->get(route('products.show', $product))
+            ->assertOk()
+            ->assertSee('Product description reviewed against the approved package.')
+            ->assertSee('Iron 20 mg')
+            ->assertSee('Follow the approved product label.');
     }
 
     public function test_admin_navigation_sections_open_demo_pages(): void
@@ -137,5 +414,28 @@ class AdminOrderManagementTest extends TestCase
         $admin->save();
 
         return $admin;
+    }
+
+    private function cmsPagePayload(string $pageKey): array
+    {
+        $definition = config("cms.pages.{$pageKey}");
+        $payload = ['content' => ['fields' => [], 'sections' => []]];
+
+        foreach ($definition['sections'] as $sectionKey => $section) {
+            if ($definition['reorderable'] ?? false) {
+                $payload['content']['sections'][$sectionKey]['order'] = $section['order'];
+            }
+            if ($section['optional'] ?? false) {
+                $payload['content']['sections'][$sectionKey]['enabled'] = true;
+            }
+
+            foreach ($section['fields'] as $fieldKey => $field) {
+                if ($field['type'] !== 'image') {
+                    $payload['content']['fields'][$sectionKey][$fieldKey] = $field['default'] ?? '';
+                }
+            }
+        }
+
+        return $payload;
     }
 }

@@ -3,26 +3,17 @@
 return [
     'navigation' => [
         ['label' => 'Dashboard', 'route' => 'admin.dashboard', 'icon' => 'dashboard'],
-        ['section' => 'sales', 'icon' => 'sales'],
+        ['section' => 'sales', 'label' => 'Sales', 'icon' => 'sales', 'children' => ['orders', 'shipments', 'invoices', 'refunds', 'transactions', 'bookings']],
         [
             'label' => 'Catalog',
             'icon' => 'catalog',
             'children' => ['products', 'configurable-products', 'categories', 'attributes', 'attribute-families', 'reviews'],
         ],
         ['section' => 'customers', 'icon' => 'customers'],
-        ['section' => 'cms', 'icon' => 'cms'],
+        ['section' => 'pages', 'label' => 'Pages', 'icon' => 'cms', 'children' => ['all-pages', 'site', 'home', 'shop', 'product', 'cart', 'wishlist', 'checkout', 'order', 'login', 'account', 'articles', 'privacy', 'terms', 'shipping', 'refund']],
         ['section' => 'offers', 'icon' => 'offers'],
-        ['section' => 'marketing', 'icon' => 'marketing'],
-        ['section' => 'reporting', 'icon' => 'reporting'],
-        ['section' => 'settings', 'icon' => 'settings'],
-        ['section' => 'configure', 'icon' => 'configure'],
     ],
     'sections' => [
-        'sales' => [
-            'title' => 'Sales',
-            'group' => 'Sales',
-            'description' => 'Sales activity, orders, and transaction summaries will be organized here.',
-        ],
         'products' => [
             'title' => 'Products',
             'group' => 'Catalog',
@@ -58,11 +49,6 @@ return [
             'group' => 'Customers',
             'description' => 'View customer profiles, saved addresses, and account activity.',
         ],
-        'cms' => [
-            'title' => 'CMS',
-            'group' => 'CMS',
-            'description' => 'Manage storefront pages, banners, and health articles.',
-        ],
         'offers' => [
             'title' => 'Offers',
             'group' => 'Offers',
@@ -78,15 +64,30 @@ return [
             'group' => 'Reporting',
             'description' => 'Review order, product, and sales performance reports.',
         ],
-        'settings' => [
-            'title' => 'Settings',
-            'group' => 'Settings',
-            'description' => 'Configure store details, delivery rules, and business preferences.',
+        'shipments' => [
+            'title' => 'Shipments',
+            'group' => 'Sales',
+            'description' => 'Shipment tracking and fulfilment tools are not configured in this demo.',
         ],
-        'configure' => [
-            'title' => 'Configure',
-            'group' => 'Configure',
-            'description' => 'Manage integrations and advanced storefront configuration.',
+        'invoices' => [
+            'title' => 'Invoices',
+            'group' => 'Sales',
+            'description' => 'Invoice generation and tax documents are not configured in this demo.',
+        ],
+        'refunds' => [
+            'title' => 'Refunds',
+            'group' => 'Sales',
+            'description' => 'Refund processing is not connected in this demo.',
+        ],
+        'transactions' => [
+            'title' => 'Transactions',
+            'group' => 'Sales',
+            'description' => 'Payment transactions are not connected in this demo.',
+        ],
+        'bookings' => [
+            'title' => 'Bookings',
+            'group' => 'Sales',
+            'description' => 'Bookings are not configured in this demo.',
         ],
     ],
 ];

@@ -24,7 +24,7 @@ The default local database is SQLite at `database/database.sqlite`. To refresh t
 
 ## Update the catalogue
 
-Products use the `Product` database model and pharmacy fields for category, brand, manufacturer, pack size, dosage form, MRP, selling price, Rx status, stock, ratings, and product details. The demo records are in `database/seeders/DatabaseSeeder.php`; replace them with reviewed product data or build an authenticated admin workflow. An image can be supplied through the product's `image_url`; otherwise the storefront renders a local CSS packaging illustration.
+Products use the `Product` database model and pharmacy fields for category, brand, manufacturer, pack size, dosage form, MRP, selling price, Rx status, stock, ratings, and product details. Demo records are in `database/seeders/DatabaseSeeder.php`. Authorized admins can add or edit products from `/admin/catalog/products`, including the storefront description, composition, uses, dosage, side effects, warnings, storage, and FAQs. New products must include a photo (JPEG, PNG, WebP, or AVIF up to 5 MB) and a video (MP4, WebM, or MOV up to 20 MB) in the create form. Media is stored on Laravel's public disk and shown on the storefront product page; existing media is kept unchanged when a product is edited. Run `php artisan storage:link` once so uploaded media can be served from `public/storage`. New products are inactive by default; verify medicine information with a registered pharmacist before activating.
 
 The header/footer logo and footer social links use the assets and public profile URLs linked from [Farlex's official website](https://www.farlex.in/). Update them in `public/images` and `config/store.php` if the official brand assets or profiles change.
 
@@ -39,7 +39,9 @@ Run migrations, then create an administrator interactively—there is no default
 "C:\xampp\php\php.exe" artisan admin:create
 ```
 
-The command prompts for a username and a password of at least 12 characters (then asks you to confirm it). Sign in at `http://127.0.0.1:8000/admin/login`; the protected dashboard at `/admin/dashboard` lets authorized admins search orders by order number, customer, phone, email, or product, filter by status/date, and view customer and product details. Payment totals are demo order values; the dashboard does not imply payment or fulfilment has occurred.
+The command prompts for a username and a password of at least 12 characters (then asks you to confirm it). Sign in at `http://127.0.0.1:8000/admin/login`; the protected Sales > Orders workspace at `/admin/sales/orders` lets authorized admins search orders by order number, customer, phone, email, or product, filter by status/date, choose page size, export filtered results as CSV, and view customer and product details. Payment totals are demo order values; the dashboard does not imply payment or fulfilment has occurred.
+
+The protected Pages workspace at `/admin/pages` edits the storefront's shared header/footer and page templates using structured text, image, button, visibility, and (where appropriate) section-order fields. Uploaded CMS images use Laravel's public disk. Product, cart, checkout, and order data and behavior remain dynamic; medical articles and policy copy need professional review before publishing.
 
 ## Important launch requirements
 

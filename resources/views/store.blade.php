@@ -1,10 +1,12 @@
 @extends('layout')
 
 @section('title', config('store.name').' | Pharmacy & health essentials')
-@section('meta_description', config('store.tagline').' Browse a demo health and wellness catalogue.')
+@section('meta_description', $pageContent->value('home', 'banner_one', 'copy', config('store.tagline').' Browse a demo health and wellness catalogue.'))
+@section('page-layout-class', 'cms-sortable-page')
 
 @section('content')
-    <section class="hero-section">
+    @if (count($banners))
+    <section class="hero-section" style="order: {{ $banners[0]['order'] }}">
         <div class="container">
             <div class="hero-carousel" data-carousel aria-label="Featured offers">
                 @foreach ($banners as $index => $banner)
@@ -17,11 +19,15 @@
                             <small class="hero-note">Sample storefront · verify all product and offer details before launch</small>
                         </div>
                         <div class="hero-art" aria-hidden="true">
-                            <span class="hero-orbit hero-orbit--one"></span>
-                            <span class="hero-orbit hero-orbit--two"></span>
-                            <span class="hero-cross">+</span>
-                            <div class="hero-pack hero-pack--back"><span>DAILY</span><strong>CARE</strong></div>
-                            <div class="hero-pack hero-pack--front"><span>{{ config('store.name') }}</span><strong>HEALTH<br>ESSENTIALS</strong><small>DEMO PACK</small></div>
+                            @if ($banner['image'])
+                                <img class="hero-banner-image" src="{{ $banner['image'] }}" alt="" loading="lazy">
+                            @else
+                                <span class="hero-orbit hero-orbit--one"></span>
+                                <span class="hero-orbit hero-orbit--two"></span>
+                                <span class="hero-cross">+</span>
+                                <div class="hero-pack hero-pack--back"><span>DAILY</span><strong>CARE</strong></div>
+                                <div class="hero-pack hero-pack--front"><span>{{ config('store.name') }}</span><strong>HEALTH<br>ESSENTIALS</strong><small>DEMO PACK</small></div>
+                            @endif
                         </div>
                     </article>
                 @endforeach
@@ -37,11 +43,13 @@
             </div>
         </div>
     </section>
+    @endif
 
-    <section class="section container">
+    @if ($pageContent->enabled('home', 'categories'))
+    <section class="section container" style="order: {{ $pageContent->order('home', 'categories', 40) }}">
         <div class="section-heading">
-            <div><p class="eyebrow">Explore the catalogue</p><h2>Shop by category</h2></div>
-            <a class="text-link" href="{{ route('shop') }}">View all products →</a>
+            <div><p class="eyebrow">{{ $pageContent->value('home', 'categories', 'eyebrow', 'Explore the catalogue') }}</p><h2>{{ $pageContent->value('home', 'categories', 'title', 'Shop by category') }}</h2></div>
+            <a class="text-link" href="{{ route('shop') }}">{{ $pageContent->value('home', 'categories', 'link_text', 'View all products →') }}</a>
         </div>
         <div class="category-scroller">
             @foreach ($categories as $category)
@@ -53,12 +61,14 @@
             @endforeach
         </div>
     </section>
+    @endif
 
-    <section class="section section--soft">
+    @if ($pageContent->enabled('home', 'concerns'))
+    <section class="section section--soft" style="order: {{ $pageContent->order('home', 'concerns', 50) }}">
         <div class="container">
             <div class="section-heading">
-                <div><p class="eyebrow">Browse with care</p><h2>Shop by health concern</h2></div>
-                <p class="section-subtitle">Categories are for browsing only—not a diagnosis or treatment recommendation.</p>
+                <div><p class="eyebrow">{{ $pageContent->value('home', 'concerns', 'eyebrow', 'Browse with care') }}</p><h2>{{ $pageContent->value('home', 'concerns', 'title', 'Shop by health concern') }}</h2></div>
+                <p class="section-subtitle">{{ $pageContent->value('home', 'concerns', 'description', 'Categories are for browsing only—not a diagnosis or treatment recommendation.') }}</p>
             </div>
             <div class="concern-grid">
                 @foreach ($concerns as $concern)
@@ -69,11 +79,13 @@
             </div>
         </div>
     </section>
+    @endif
 
-    <section class="section container">
+    @if ($pageContent->enabled('home', 'featured'))
+    <section class="section container" style="order: {{ $pageContent->order('home', 'featured', 60) }}">
         <div class="section-heading">
-            <div><p class="eyebrow">A starting point</p><h2>Featured health essentials</h2></div>
-            <a class="text-link" href="{{ route('shop') }}">Shop the full range →</a>
+            <div><p class="eyebrow">{{ $pageContent->value('home', 'featured', 'eyebrow', 'A starting point') }}</p><h2>{{ $pageContent->value('home', 'featured', 'title', 'Featured health essentials') }}</h2></div>
+            <a class="text-link" href="{{ route('shop') }}">{{ $pageContent->value('home', 'featured', 'link_text', 'Shop the full range →') }}</a>
         </div>
         <div class="product-scroller">
             @forelse ($featuredProducts as $product)
@@ -83,30 +95,26 @@
             @endforelse
         </div>
     </section>
+    @endif
 
-    <section class="section container promo-grid">
-        <a class="promo-card promo-card--mint" href="{{ route('shop', ['category' => 'Vitamins & Supplements']) }}">
-            <span class="eyebrow">Sample promotion</span>
-            <strong>Supplement offers<br>go here.</strong>
-            <span>Configure approved discounts and terms before publishing <span aria-hidden="true">→</span></span>
-        </a>
-        <a class="promo-card promo-card--cream" href="{{ route('shop') }}">
-            <span class="eyebrow">Explore a bundle</span>
-            <strong>Thoughtful picks,<br>together.</strong>
-            <span>Bundle pricing is not enabled in this demo <span aria-hidden="true">→</span></span>
-        </a>
-        <a class="promo-card promo-card--lavender" href="{{ route('shop', ['rx' => 'rx']) }}">
-            <span class="eyebrow">Prescription care</span>
-            <strong>Rx items are<br>clearly labelled.</strong>
-            <span>Upload a prescription during checkout <span aria-hidden="true">→</span></span>
-        </a>
+    @if ($pageContent->enabled('home', 'promotions'))
+    <section class="section container promo-grid" style="order: {{ $pageContent->order('home', 'promotions', 70) }}">
+        @foreach (['one' => 'mint', 'two' => 'cream', 'three' => 'lavender'] as $card => $tone)
+            <a class="promo-card promo-card--{{ $tone }}" href="{{ $pageContent->value('home', 'promotions', $card.'_url', '/shop') }}">
+                <span class="eyebrow">{{ $pageContent->value('home', 'promotions', $card.'_eyebrow', '') }}</span>
+                <strong>{{ $pageContent->value('home', 'promotions', $card.'_title', '') }}</strong>
+                <span>{{ $pageContent->value('home', 'promotions', $card.'_copy', '') }}</span>
+            </a>
+        @endforeach
     </section>
+    @endif
 
-    <section class="section section--navy">
+    @if ($pageContent->enabled('home', 'trust'))
+    <section class="section section--navy" style="order: {{ $pageContent->order('home', 'trust', 80) }}">
         <div class="container">
             <div class="section-heading section-heading--light">
-                <div><p class="eyebrow">Built with clarity</p><h2>What this storefront is designed to do</h2></div>
-                <p class="section-subtitle">Operational trust claims must be verified before your site goes live.</p>
+                <div><p class="eyebrow">{{ $pageContent->value('home', 'trust', 'eyebrow', 'Built with clarity') }}</p><h2>{{ $pageContent->value('home', 'trust', 'title', 'What this storefront is designed to do') }}</h2></div>
+                <p class="section-subtitle">{{ $pageContent->value('home', 'trust', 'description', 'Operational trust claims must be verified before your site goes live.') }}</p>
             </div>
             <div class="trust-grid">
                 <article><span aria-hidden="true">✓</span><h3>Separate Rx and OTC</h3><p>Prescription items are labelled and guarded at checkout.</p></article>
@@ -116,13 +124,15 @@
             </div>
         </div>
     </section>
+    @endif
 
-    <section class="section container prescription-feature" id="prescription">
+    @if ($pageContent->enabled('home', 'prescription'))
+    <section class="section container prescription-feature" id="prescription" style="order: {{ $pageContent->order('home', 'prescription', 90) }}">
         <div class="prescription-copy">
-            <p class="eyebrow">For products marked Rx</p>
-            <h2>Prescription upload, in three steps.</h2>
-            <p>Add the requested product to your cart, upload a valid prescription at checkout, then wait for the required pharmacy review.</p>
-            <a class="button" href="{{ route('shop', ['rx' => 'rx']) }}">Browse Rx-labelled products</a>
+            <p class="eyebrow">{{ $pageContent->value('home', 'prescription', 'eyebrow', 'For products marked Rx') }}</p>
+            <h2>{{ $pageContent->value('home', 'prescription', 'title', 'Prescription upload, in three steps.') }}</h2>
+            <p>{{ $pageContent->value('home', 'prescription', 'copy', 'Add the requested product to your cart, upload a valid prescription at checkout, then wait for the required pharmacy review.') }}</p>
+            <a class="button" href="{{ $pageContent->value('home', 'prescription', 'button_url', '/shop?rx=rx') }}">{{ $pageContent->value('home', 'prescription', 'button_text', 'Browse Rx-labelled products') }}</a>
             <p class="fine-print">No prescription image is made publicly accessible. Real review workflows and retention controls must be configured before launch.</p>
         </div>
         <ol class="steps-list">
@@ -131,49 +141,79 @@
             <li><span>03</span><div><strong>Fulfilment</strong><p>Only after verification and payment integration.</p></div></li>
         </ol>
     </section>
+    @endif
 
-    <section class="section section--soft">
+    @if ($pageContent->enabled('home', 'brands'))
+    <section class="section section--soft" style="order: {{ $pageContent->order('home', 'brands', 100) }}">
         <div class="container">
             <div class="section-heading">
-                <div><p class="eyebrow">Partner brands</p><h2>Featured brands</h2></div>
-                <p class="section-subtitle">Replace demo labels with approved brand assets.</p>
+                <div><p class="eyebrow">{{ $pageContent->value('home', 'brands', 'eyebrow', 'Partner brands') }}</p><h2>{{ $pageContent->value('home', 'brands', 'title', 'Featured brands') }}</h2></div>
+                <p class="section-subtitle">{{ $pageContent->value('home', 'brands', 'description', 'Replace demo labels with approved brand assets.') }}</p>
             </div>
             <div class="brand-strip" aria-label="Brand logo placeholders">
                 <span>BRAND 01</span><span>BRAND 02</span><span>BRAND 03</span><span>BRAND 04</span><span>YOUR BRAND</span>
             </div>
         </div>
     </section>
+    @endif
 
-    <section class="section container">
+    @if ($pageContent->enabled('home', 'testimonials'))
+    <section class="section container" style="order: {{ $pageContent->order('home', 'testimonials', 110) }}">
         <div class="testimonial-panel">
             <span class="testimonial-mark" aria-hidden="true">“</span>
-            <div><p class="eyebrow">Verified customer reviews</p><h2>Real customer stories will appear here.</h2><p>We don't publish sample testimonials or ratings as if they were genuine. Add verified reviews after your review process is ready.</p></div>
+            <div><p class="eyebrow">{{ $pageContent->value('home', 'testimonials', 'eyebrow', 'Verified customer reviews') }}</p><h2>{{ $pageContent->value('home', 'testimonials', 'title', 'Real customer stories will appear here.') }}</h2><p>{{ $pageContent->value('home', 'testimonials', 'copy', "We don't publish sample testimonials or ratings as if they were genuine. Add verified reviews after your review process is ready.") }}</p></div>
             <a class="text-link" href="{{ route('shop') }}">Explore products →</a>
         </div>
     </section>
+    @endif
 
-    <section class="section section--soft">
+    @if ($pageContent->enabled('home', 'articles'))
+    <section class="section section--soft" style="order: {{ $pageContent->order('home', 'articles', 120) }}">
         <div class="container">
             <div class="section-heading">
-                <div><p class="eyebrow">Helpful reading</p><h2>Health & product guides</h2></div>
-                <a class="text-link" href="{{ route('articles') }}">More articles →</a>
+                <div><p class="eyebrow">{{ $pageContent->value('home', 'articles', 'eyebrow', 'Helpful reading') }}</p><h2>{{ $pageContent->value('home', 'articles', 'title', 'Health & product guides') }}</h2></div>
+                <a class="text-link" href="{{ route('articles') }}">{{ $pageContent->value('home', 'articles', 'link_text', 'More articles →') }}</a>
             </div>
             <div class="article-grid">
-                <a class="article-card" href="{{ route('articles') }}#product-labels"><span class="article-art article-art--mint" aria-hidden="true">01</span><small>Product information</small><h3>How to read a product label</h3><span>Read guide →</span></a>
-                <a class="article-card" href="{{ route('articles') }}#storage"><span class="article-art article-art--cream" aria-hidden="true">02</span><small>Everyday care</small><h3>Keeping products in original packaging</h3><span>Read guide →</span></a>
-                <a class="article-card" href="{{ route('articles') }}#pharmacist"><span class="article-art article-art--lavender" aria-hidden="true">03</span><small>Pharmacy support</small><h3>Questions to ask your pharmacist</h3><span>Read guide →</span></a>
+                @php
+                    $homepageArticles = collect([
+                        'article_one' => ['number' => '01', 'tone' => 'mint', 'anchor' => 'product-labels', 'order' => 20],
+                        'article_two' => ['number' => '02', 'tone' => 'cream', 'anchor' => 'storage', 'order' => 30],
+                        'article_three' => ['number' => '03', 'tone' => 'lavender', 'anchor' => 'pharmacist', 'order' => 40],
+                    ])->sortBy(fn ($article, $section) => $pageContent->order('articles', $section, $article['order']));
+                @endphp
+                @foreach ($homepageArticles as $section => $article)
+                    @if ($pageContent->enabled('articles', $section))
+                        <a class="article-card" href="{{ route('articles') }}#{{ $article['anchor'] }}">
+                            <span class="article-art article-art--{{ $article['tone'] }}" aria-hidden="true">
+                                @if ($pageContent->imageUrl('articles', $section, 'image'))
+                                    <img src="{{ $pageContent->imageUrl('articles', $section, 'image') }}" alt="" loading="lazy">
+                                @else
+                                    {{ $article['number'] }}
+                                @endif
+                            </span>
+                            <small>{{ $pageContent->value('articles', $section, 'eyebrow', '') }}</small>
+                            <h3>{{ $pageContent->value('articles', $section, 'title', '') }}</h3>
+                            <span>Read guide →</span>
+                        </a>
+                    @endif
+                @endforeach
             </div>
         </div>
     </section>
+    @endif
 
-    <section class="section container app-banner">
-        <div><p class="eyebrow">Coming soon</p><h2>Care that fits your day.</h2><p>App downloads and refill reminders will be available after the mobile service is configured.</p></div>
+    @if ($pageContent->enabled('home', 'app'))
+    <section class="section container app-banner" style="order: {{ $pageContent->order('home', 'app', 130) }}">
+        <div><p class="eyebrow">{{ $pageContent->value('home', 'app', 'eyebrow', 'Coming soon') }}</p><h2>{{ $pageContent->value('home', 'app', 'title', 'Care that fits your day.') }}</h2><p>{{ $pageContent->value('home', 'app', 'copy', 'App downloads and refill reminders will be available after the mobile service is configured.') }}</p></div>
         <div class="app-badges"><span class="store-badge">Google Play <small>Coming soon</small></span><span class="store-badge">App Store <small>Coming soon</small></span></div>
     </section>
+    @endif
 
-    <section class="newsletter-section">
+    @if ($pageContent->enabled('home', 'newsletter'))
+    <section class="newsletter-section" style="order: {{ $pageContent->order('home', 'newsletter', 140) }}">
         <div class="container newsletter-inner">
-            <div><p class="eyebrow">A thoughtful inbox</p><h2>Notes for your wellness routine.</h2><p>Subscribe for product and store updates. No medical advice or treatment claims.</p></div>
+            <div><p class="eyebrow">{{ $pageContent->value('home', 'newsletter', 'eyebrow', 'A thoughtful inbox') }}</p><h2>{{ $pageContent->value('home', 'newsletter', 'title', 'Notes for your wellness routine.') }}</h2><p>{{ $pageContent->value('home', 'newsletter', 'copy', 'Subscribe for product and store updates. No medical advice or treatment claims.') }}</p></div>
             <form method="POST" action="{{ route('newsletter.subscribe') }}" class="newsletter-form">
                 @csrf
                 <label class="sr-only" for="newsletter-email">Email address</label>
@@ -183,4 +223,5 @@
             </form>
         </div>
     </section>
+    @endif
 @endsection

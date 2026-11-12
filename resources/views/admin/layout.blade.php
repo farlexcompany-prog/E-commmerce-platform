@@ -27,33 +27,47 @@
                 <symbol id="admin-icon-offers" viewBox="0 0 24 24"><path d="m20 12-8 8-9-9V3h8l9 9Z"/><circle cx="7.5" cy="7.5" r="1"/></symbol>
                 <symbol id="admin-icon-marketing" viewBox="0 0 24 24"><path d="M3 11v2a2 2 0 0 0 2 2h3l10 5V4L8 9H5a2 2 0 0 0-2 2Z"/><path d="m8 15 2 6h4l-2-8M21 9l-2 2 2 2"/></symbol>
                 <symbol id="admin-icon-reporting" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></symbol>
-                <symbol id="admin-icon-settings" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.7a8 8 0 0 1-1.7 1l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.7-1l-1.7.7-1.4-2.4 1.4-1.1a7 7 0 0 1 0-2l-1.4-1.1 1.4-2.4 1.7.7a8 8 0 0 1 1.7-1l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.7 1l1.7-.7 1.4 2.4-1.4 1.1a7 7 0 0 1 0 2Z"/></symbol>
-                <symbol id="admin-icon-configure" viewBox="0 0 24 24"><path d="M14.7 6.3a5 5 0 0 0-6.4 6.4L3 18a2.1 2.1 0 0 0 3 3l5.3-5.3a5 5 0 0 0 6.4-6.4L14 13l-3-3 3.7-3.7Z"/></symbol>
                 <symbol id="admin-icon-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
             </svg>
 
             <nav class="admin-nav" aria-label="Admin navigation">
                 @foreach (config('admin.navigation') as $item)
                     @if (isset($item['route']))
-                        <a class="admin-nav-link {{ request()->routeIs($item['route'], 'admin.orders.show') ? 'is-active' : '' }}" href="{{ route($item['route']) }}">
+                        <a class="admin-nav-link {{ request()->routeIs($item['route']) ? 'is-active' : '' }}" href="{{ route($item['route']) }}">
                             <svg aria-hidden="true"><use href="#admin-icon-{{ $item['icon'] }}"></use></svg>
                             <span>{{ $item['label'] }}</span>
                         </a>
                     @elseif (isset($item['children']))
                         @php
                             $activeSection = request()->route('section');
-                            $catalogIsActive = in_array($activeSection, $item['children'], true);
-                            $catalogIsOpen = $catalogIsActive || request()->routeIs('admin.dashboard', 'admin.orders.show');
+                            $isSalesGroup = ($item['section'] ?? null) === 'sales';
+                            $isPagesGroup = ($item['section'] ?? null) === 'pages';
+                            $groupIsActive = match (true) {
+                                $isSalesGroup => in_array($activeSection, $item['children'], true) || request()->routeIs('admin.sales.orders', 'admin.orders.show'),
+                                $isPagesGroup => request()->routeIs('admin.pages.*'),
+                                default => in_array($activeSection, $item['children'], true) || request()->routeIs('admin.catalog.products*'),
+                            };
+                            $groupIsOpen = $groupIsActive;
                         @endphp
-                        <details class="admin-nav-group" {{ $catalogIsOpen ? 'open' : '' }}>
-                            <summary class="admin-nav-link {{ $catalogIsActive ? 'is-active' : '' }}">
+                        <details class="admin-nav-group {{ $isPagesGroup ? 'admin-nav-group--pages' : '' }}" {{ $groupIsOpen ? 'open' : '' }}>
+                            <summary class="admin-nav-link {{ $groupIsActive ? 'is-active' : '' }}">
                                 <svg aria-hidden="true"><use href="#admin-icon-{{ $item['icon'] }}"></use></svg>
                                 <span>{{ $item['label'] }}</span>
                                 <svg class="admin-nav-chevron" aria-hidden="true"><use href="#admin-icon-chevron"></use></svg>
                             </summary>
                             <div class="admin-subnav">
                                 @foreach ($item['children'] as $childKey)
-                                    <a class="{{ $activeSection === $childKey ? 'is-active' : '' }}" href="{{ route('admin.sections.show', $childKey) }}">{{ config('admin.sections.'.$childKey.'.title') }}</a>
+                                    @if ($childKey === 'orders')
+                                        <a class="{{ request()->routeIs('admin.sales.orders', 'admin.orders.show') ? 'is-active' : '' }}" href="{{ route('admin.sales.orders') }}">Orders</a>
+                                    @elseif ($childKey === 'all-pages')
+                                        <a class="{{ request()->routeIs('admin.pages.index') ? 'is-active' : '' }}" href="{{ route('admin.pages.index') }}">All pages</a>
+                                    @elseif ($isPagesGroup)
+                                        <a class="{{ request()->routeIs('admin.pages.edit') && request()->route('pageKey') === $childKey ? 'is-active' : '' }}" href="{{ route('admin.pages.edit', $childKey) }}">{{ config('cms.pages.'.$childKey.'.title') }}</a>
+                                    @elseif ($childKey === 'products')
+                                        <a class="{{ request()->routeIs('admin.catalog.products*') ? 'is-active' : '' }}" href="{{ route('admin.catalog.products') }}">{{ config('admin.sections.'.$childKey.'.title') }}</a>
+                                    @else
+                                        <a class="{{ $activeSection === $childKey ? 'is-active' : '' }}" href="{{ route('admin.sections.show', $childKey) }}">{{ config('admin.sections.'.$childKey.'.title') }}</a>
+                                    @endif
                                 @endforeach
                             </div>
                         </details>
@@ -86,6 +100,9 @@
             </header>
 
             <main class="admin-content">
+                @if (session('status'))
+                    <div class="admin-success-message" role="status">{{ session('status') }}</div>
+                @endif
                 @yield('content')
             </main>
         </div>
