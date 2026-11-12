@@ -15,6 +15,9 @@ class AdminOrderManagementTest extends TestCase
 
     public function test_guests_are_redirected_to_admin_sign_in(): void
     {
+        $this->get(route('admin.home'))
+            ->assertRedirect(route('admin.dashboard'));
+
         $this->get(route('admin.dashboard'))
             ->assertRedirect(route('admin.login'));
     }

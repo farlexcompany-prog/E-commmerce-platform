@@ -28,6 +28,8 @@ Route::get('/account', [StoreController::class, 'account'])->name('account');
 Route::get('/health-articles', [StoreController::class, 'articles'])->name('articles');
 Route::get('/policies/{policy}', [StoreController::class, 'policy'])->whereIn('policy', ['privacy', 'terms', 'shipping', 'refund'])->name('policies.show');
 
+Route::redirect('/admin', '/admin/dashboard')->name('admin.home');
+
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:5,1')->name('login.store');
