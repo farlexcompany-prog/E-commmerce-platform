@@ -55,6 +55,9 @@
                 <div class="admin-product-form-heading">
                     <h2>{{ $section['title'] }}</h2>
                     <p>These fields control this section on the {{ $definition['title'] }} page.</p>
+                    @if ($pageKey === 'home' && $sectionKey === 'testimonials')
+                        <a class="admin-secondary-button admin-review-manage-link" href="{{ route('admin.reviews.index') }}">Manage homepage review cards</a>
+                    @endif
                 </div>
                 <div class="admin-page-section-controls">
                     @if ($definition['reorderable'] ?? false)

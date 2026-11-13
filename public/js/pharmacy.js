@@ -1,7 +1,7 @@
 (() => {
-    const carousel = document.querySelector('[data-carousel]');
-    if (carousel) {
+    document.querySelectorAll('[data-carousel]').forEach((carousel) => {
         const slides = [...carousel.querySelectorAll('[data-slide]')];
+        if (!slides.length) return;
         const dots = [...carousel.querySelectorAll('[data-carousel-dot]')];
         let current = Math.max(0, slides.findIndex((slide) => slide.classList.contains('is-active')));
 
@@ -21,13 +21,13 @@
         carousel.querySelector('[data-carousel-next]')?.addEventListener('click', () => showSlide(current + 1));
         dots.forEach((dot, index) => dot.addEventListener('click', () => showSlide(index)));
 
-        if (slides.length > 1 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if (slides.length > 1 && !carousel.hasAttribute('data-carousel-static') && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
             let timer = window.setInterval(() => {
                 if (!document.hidden) showSlide(current + 1);
             }, 6500);
             carousel.addEventListener('mouseenter', () => window.clearInterval(timer), { once: true });
         }
-    }
+    });
 
     document.querySelectorAll('[data-filter-toggle]').forEach((button) => {
         button.addEventListener('click', () => {

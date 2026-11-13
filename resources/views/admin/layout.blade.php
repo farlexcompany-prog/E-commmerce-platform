@@ -61,6 +61,8 @@
                                         <a class="{{ request()->routeIs('admin.sales.orders', 'admin.orders.show') ? 'is-active' : '' }}" href="{{ route('admin.sales.orders') }}">Orders</a>
                                     @elseif ($childKey === 'all-pages')
                                         <a class="{{ request()->routeIs('admin.pages.index') ? 'is-active' : '' }}" href="{{ route('admin.pages.index') }}">All pages</a>
+                                    @elseif ($childKey === 'customer-reviews')
+                                        <a class="{{ request()->routeIs('admin.reviews.*') ? 'is-active' : '' }}" href="{{ route('admin.reviews.index') }}">Homepage reviews</a>
                                     @elseif ($isPagesGroup)
                                         <a class="{{ request()->routeIs('admin.pages.edit') && request()->route('pageKey') === $childKey ? 'is-active' : '' }}" href="{{ route('admin.pages.edit', $childKey) }}">{{ config('cms.pages.'.$childKey.'.title') }}</a>
                                     @elseif ($childKey === 'products')

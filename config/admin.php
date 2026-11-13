@@ -10,7 +10,7 @@ return [
             'children' => ['products', 'configurable-products', 'categories', 'attributes', 'attribute-families', 'reviews'],
         ],
         ['section' => 'customers', 'icon' => 'customers'],
-        ['section' => 'pages', 'label' => 'Pages', 'icon' => 'cms', 'children' => ['all-pages', 'site', 'home', 'shop', 'product', 'cart', 'wishlist', 'checkout', 'order', 'login', 'account', 'articles', 'privacy', 'terms', 'shipping', 'refund']],
+        ['section' => 'pages', 'label' => 'Pages', 'icon' => 'cms', 'children' => ['all-pages', 'site', 'home', 'customer-reviews', 'shop', 'product', 'cart', 'wishlist', 'checkout', 'order', 'login', 'account', 'articles', 'privacy', 'terms', 'shipping', 'refund']],
         ['section' => 'offers', 'icon' => 'offers'],
     ],
     'sections' => [

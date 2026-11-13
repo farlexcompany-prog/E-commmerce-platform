@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\NewsletterSubscriber;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\CmsReview;
 use App\Services\PageContent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -56,6 +57,11 @@ class StoreController extends Controller
             'categories' => config('store.categories'),
             'concerns' => config('store.concerns'),
             'banners' => $banners,
+            'reviews' => CmsReview::query()
+                ->where('published', true)
+                ->orderBy('position')
+                ->orderBy('id')
+                ->get(),
         ]);
     }
 

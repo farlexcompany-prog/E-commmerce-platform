@@ -157,12 +157,57 @@
     </section>
     @endif
 
-    @if ($pageContent->enabled('home', 'testimonials'))
-    <section class="section container" style="order: {{ $pageContent->order('home', 'testimonials', 110) }}">
-        <div class="testimonial-panel">
-            <span class="testimonial-mark" aria-hidden="true">“</span>
-            <div><p class="eyebrow">{{ $pageContent->value('home', 'testimonials', 'eyebrow', 'Verified customer reviews') }}</p><h2>{{ $pageContent->value('home', 'testimonials', 'title', 'Real customer stories will appear here.') }}</h2><p>{{ $pageContent->value('home', 'testimonials', 'copy', "We don't publish sample testimonials or ratings as if they were genuine. Add verified reviews after your review process is ready.") }}</p></div>
-            <a class="text-link" href="{{ route('shop') }}">Explore products →</a>
+    @if ($pageContent->enabled('home', 'testimonials') && $reviews->isNotEmpty())
+    <section class="section section--soft" style="order: {{ $pageContent->order('home', 'testimonials', 110) }}">
+        <div class="container">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">{{ $pageContent->value('home', 'testimonials', 'eyebrow', 'From our YouTube channel') }}</p>
+                    <h2>{{ $pageContent->value('home', 'testimonials', 'title', 'Farlex Pharma videos') }}</h2>
+                </div>
+                <div>
+                    <p class="section-subtitle">{{ $pageContent->value('home', 'testimonials', 'copy', 'Watch videos from Farlex Pharma on YouTube. Customer testimonials reflect individual experiences.') }}</p>
+                    <a class="text-link" href="{{ config('store.youtube_channel_url') }}" target="_blank" rel="noopener noreferrer">Visit our YouTube channel →</a>
+                </div>
+            </div>
+            <div class="review-carousel" data-carousel data-carousel-static aria-label="Farlex Pharma videos">
+                @foreach ($reviews as $index => $review)
+                    <article class="review-card {{ $index === 0 ? 'is-active' : '' }}" data-slide aria-hidden="{{ $index === 0 ? 'false' : 'true' }}">
+                        @if ($review->youtube_embed_url)
+                            <div class="review-card-video">
+                                <iframe
+                                    src="{{ $review->youtube_embed_url }}"
+                                    title="{{ $review->video_title ?: 'Video from '.$review->reviewer_name }}"
+                                    loading="lazy"
+                                    referrerpolicy="strict-origin-when-cross-origin"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowfullscreen></iframe>
+                            </div>
+                            @if ($review->video_title)
+                                <h3 class="review-card-title">{{ $review->video_title }}</h3>
+                            @endif
+                        @endif
+                        @if ($review->image_path)
+                            <img class="review-card-image" src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($review->image_path) }}" alt="Image shared with {{ $review->reviewer_name }}'s review" loading="lazy">
+                        @endif
+                        <div class="review-card-copy">
+                            @if ($review->review_text)
+                                <span class="review-card-quote" aria-hidden="true">“</span>
+                                <blockquote>{{ $review->review_text }}</blockquote>
+                            @endif
+                            <p class="review-card-author">{{ $review->reviewer_name }}</p>
+                        </div>
+                    </article>
+                @endforeach
+                @if ($reviews->count() > 1)
+                    <div class="review-carousel-controls">
+                        <button type="button" class="carousel-arrow" data-carousel-prev aria-label="Previous video">‹</button>
+                        <span>Farlex Pharma videos</span>
+                        <button type="button" class="carousel-arrow" data-carousel-next aria-label="Next video">›</button>
+                    </div>
+                @endif
+            </div>
+            <p class="review-disclaimer">Customer experiences are individual and do not replace advice from a registered medical practitioner or pharmacist.</p>
         </div>
     </section>
     @endif
@@ -200,13 +245,6 @@
                 @endforeach
             </div>
         </div>
-    </section>
-    @endif
-
-    @if ($pageContent->enabled('home', 'app'))
-    <section class="section container app-banner" style="order: {{ $pageContent->order('home', 'app', 130) }}">
-        <div><p class="eyebrow">{{ $pageContent->value('home', 'app', 'eyebrow', 'Coming soon') }}</p><h2>{{ $pageContent->value('home', 'app', 'title', 'Care that fits your day.') }}</h2><p>{{ $pageContent->value('home', 'app', 'copy', 'App downloads and refill reminders will be available after the mobile service is configured.') }}</p></div>
-        <div class="app-badges"><span class="store-badge">Google Play <small>Coming soon</small></span><span class="store-badge">App Store <small>Coming soon</small></span></div>
     </section>
     @endif
 

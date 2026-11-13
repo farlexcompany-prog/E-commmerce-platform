@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Order;
 use App\Models\Admin;
 use App\Models\CmsPage;
+use App\Models\CmsReview;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,6 +36,9 @@ class AdminOrderManagementTest extends TestCase
             ->assertRedirect(route('admin.login'));
 
         $this->get(route('admin.pages.index'))
+            ->assertRedirect(route('admin.login'));
+
+        $this->get(route('admin.reviews.index'))
             ->assertRedirect(route('admin.login'));
     }
 
@@ -240,6 +244,106 @@ class AdminOrderManagementTest extends TestCase
             ->assertSessionHasErrors('content.fields.banner_one.button_url');
 
         $this->assertDatabaseMissing('cms_pages', ['page_key' => 'home']);
+    }
+
+    public function test_admin_can_publish_a_youtube_and_image_review_to_the_homepage_carousel(): void
+    {
+        Storage::fake('public');
+        $admin = $this->makeAdmin();
+        $reviewData = [
+            'reviewer_name' => 'A Customer',
+            'video_title' => 'Customer review video title',
+            'review_text' => 'The service was helpful and delivery was prompt.',
+            'youtube_url' => 'https://youtu.be/abcDEF123_-',
+            'image' => UploadedFile::fake()->createWithContent(
+                'review-image.png',
+                file_get_contents(public_path('images/farlex-logo.png')),
+            ),
+            'position' => '2',
+            'permission_confirmed' => '1',
+            'published' => '1',
+        ];
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.reviews.create'))
+            ->assertOk()
+            ->assertSee('YouTube video URL')
+            ->assertSee('permission to publish');
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.reviews.store'), $reviewData)
+            ->assertRedirect(route('admin.reviews.index'))
+            ->assertSessionHas('status', 'Review added.');
+
+        $review = CmsReview::query()->where('youtube_url', $reviewData['youtube_url'])->firstOrFail();
+        $this->assertTrue($review->published);
+        $this->assertTrue($review->permission_confirmed);
+        $this->assertSame('Customer review video title', $review->video_title);
+        $this->assertSame('https://www.youtube-nocookie.com/embed/abcDEF123_-', $review->youtube_embed_url);
+        Storage::disk('public')->assertExists($review->image_path);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.reviews.index'))
+            ->assertOk()
+            ->assertSee('A Customer')
+            ->assertSee('Published');
+
+        $this->get(route('store'))
+            ->assertOk()
+            ->assertSee('Farlex Pharma videos')
+            ->assertSee('Customer Testimonial 3')
+            ->assertSee('https://www.youtube-nocookie.com/embed/S0FoTOvtQm4', false)
+            ->assertSee('Customer review video title')
+            ->assertSee('The service was helpful and delivery was prompt.')
+            ->assertSee('A Customer')
+            ->assertSee($review->youtube_embed_url, false)
+            ->assertSee(Storage::disk('public')->url($review->image_path), false)
+            ->assertDontSee('Google Play')
+            ->assertDontSee('App Store')
+            ->assertDontSee('app downloads');
+
+        $this->actingAs($admin, 'admin')
+            ->put(route('admin.reviews.update', $review), [
+                'reviewer_name' => 'A Customer',
+                'video_title' => null,
+                'review_text' => $reviewData['review_text'],
+                'youtube_url' => $reviewData['youtube_url'],
+                'position' => '2',
+                'permission_confirmed' => '1',
+                'published' => '0',
+            ])
+            ->assertRedirect(route('admin.reviews.index'));
+
+        $this->get(route('store'))
+            ->assertOk()
+            ->assertDontSee('The service was helpful and delivery was prompt.');
+    }
+
+    public function test_admin_cannot_publish_reviews_from_untrusted_video_hosts_or_without_permission(): void
+    {
+        $admin = $this->makeAdmin();
+        $reviewData = [
+            'reviewer_name' => 'A Customer',
+            'review_text' => 'A genuine review.',
+            'youtube_url' => 'https://youtube.com.attacker.example/watch?v=abcDEF123_-',
+            'position' => '0',
+            'permission_confirmed' => '1',
+            'published' => '1',
+        ];
+        $invalidUrl = $reviewData['youtube_url'];
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.reviews.store'), $reviewData)
+            ->assertSessionHasErrors('youtube_url');
+
+        $reviewData['youtube_url'] = '';
+        $reviewData['permission_confirmed'] = '0';
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.reviews.store'), $reviewData)
+            ->assertSessionHasErrors('permission_confirmed');
+
+        $this->assertDatabaseMissing('cms_reviews', [
+            'youtube_url' => $invalidUrl,
+        ]);
     }
 
     public function test_admin_can_create_and_update_product_descriptions(): void

@@ -171,13 +171,13 @@ return [
                     ],
                 ],
                 'testimonials' => [
-                    'title' => 'Customer reviews',
+                    'title' => 'Farlex Pharma videos',
                     'order' => 110,
                     'optional' => true,
                     'fields' => [
-                        'eyebrow' => ['label' => 'Eyebrow', 'type' => 'text', 'default' => 'Verified customer reviews'],
-                        'title' => ['label' => 'Heading', 'type' => 'text', 'default' => 'Real customer stories will appear here.'],
-                        'copy' => ['label' => 'Description', 'type' => 'textarea', 'default' => "We don't publish sample testimonials or ratings as if they were genuine. Add verified reviews after your review process is ready."],
+                        'eyebrow' => ['label' => 'Eyebrow', 'type' => 'text', 'default' => 'From our YouTube channel'],
+                        'title' => ['label' => 'Heading', 'type' => 'text', 'default' => 'Farlex Pharma videos'],
+                        'copy' => ['label' => 'Description', 'type' => 'textarea', 'default' => 'Watch videos from Farlex Pharma on YouTube. Customer testimonials reflect individual experiences.'],
                     ],
                 ],
                 'articles' => [
@@ -188,16 +188,6 @@ return [
                         'eyebrow' => ['label' => 'Eyebrow', 'type' => 'text', 'default' => 'Helpful reading'],
                         'title' => ['label' => 'Heading', 'type' => 'text', 'default' => 'Health & product guides'],
                         'link_text' => ['label' => 'View all link', 'type' => 'text', 'default' => 'More articles →'],
-                    ],
-                ],
-                'app' => [
-                    'title' => 'App promotion',
-                    'order' => 130,
-                    'optional' => true,
-                    'fields' => [
-                        'eyebrow' => ['label' => 'Eyebrow', 'type' => 'text', 'default' => 'Coming soon'],
-                        'title' => ['label' => 'Heading', 'type' => 'text', 'default' => 'Care that fits your day.'],
-                        'copy' => ['label' => 'Description', 'type' => 'textarea', 'default' => 'App downloads and refill reminders will be available after the mobile service is configured.'],
                     ],
                 ],
                 'newsletter' => [

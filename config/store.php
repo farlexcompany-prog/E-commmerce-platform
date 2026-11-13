@@ -3,6 +3,7 @@
 return [
     'name' => env('STORE_NAME', 'Farlex Pharmaceuticals'),
     'tagline' => env('STORE_TAGLINE', 'Everyday health essentials, thoughtfully delivered.'),
+    'youtube_channel_url' => 'https://www.youtube.com/@farlexpharma/videos',
     'social_links' => [
         [
             'name' => 'LinkedIn',

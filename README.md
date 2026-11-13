@@ -43,6 +43,8 @@ The command prompts for a username and a password of at least 12 characters (the
 
 The protected Pages workspace at `/admin/pages` edits the storefront's shared header/footer and page templates using structured text, image, button, visibility, and (where appropriate) section-order fields. Uploaded CMS images use Laravel's public disk. Product, cart, checkout, and order data and behavior remain dynamic; medical articles and policy copy need professional review before publishing.
 
+Manage homepage customer-review cards from Admin > Pages > Homepage reviews (also linked from Pages > Home page). The homepage includes the current videos from the Farlex Pharma YouTube channel and links back to the channel; add written reviews, optional images, and more public YouTube watch or Shorts URLs in the admin. YouTube videos are embedded rather than copied to the site. Review cards are drafts until published, and publishing requires confirmation that the content is genuine and permission has been obtained.
+
 ## Important launch requirements
 
 This is a demo storefront, not a production-ready pharmacy operation. It intentionally does not claim a licence or pharmacist approval and does not process payments or send OTPs. Before taking real orders, complete legal and pharmacy review, configure verified business/licence details, approved product copy and images, SMS authentication, payment and fulfilment providers, delivery serviceability, prescription access/retention controls, account security, and final customer policies. Rx-labelled demo products require a prescription upload; uploads are stored on Laravel's private local disk, but production access, encryption, retention, and audit controls still need implementation.
