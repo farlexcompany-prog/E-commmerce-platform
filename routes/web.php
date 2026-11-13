@@ -9,9 +9,13 @@ use App\Http\Controllers\Admin\AdminSectionController;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Controllers\StoreController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BlogController;
+
 
 Route::get('/', [StoreController::class, 'index'])->name('store');
 Route::get('/shop', [StoreController::class, 'shop'])->name('shop');
+Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
+Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
 Route::get('/products/{product:slug}', [StoreController::class, 'showProduct'])->name('products.show');
 Route::get('/search/suggestions', [StoreController::class, 'suggestions'])->middleware('throttle:30,1')->name('search.suggestions');
 Route::get('/cart', [StoreController::class, 'cart'])->name('cart.index');
