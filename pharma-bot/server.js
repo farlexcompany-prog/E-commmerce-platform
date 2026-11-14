@@ -33,7 +33,7 @@ async function generateWithRetry(systemInstruction, input) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       return await ai.interactions.create({
-        model: "gemini-3.8-flash",
+        model: "gemini-flash-latest",
         system_instruction: systemInstruction,
         input: input
       });
