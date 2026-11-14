@@ -62,6 +62,7 @@
                 <a href="{{ route('shop', ['category' => 'Healthcare Devices']) }}">{{ $pageContent->value('site', 'navigation', 'devices', 'Healthcare Devices') }}</a>
                 <a href="{{ route('shop', ['category' => 'Vitamins & Supplements']) }}">{{ $pageContent->value('site', 'navigation', 'supplements', 'Vitamins & Supplements') }}</a>
                 <a href="{{ route('shop', ['category' => 'Diabetes Care']) }}">{{ $pageContent->value('site', 'navigation', 'diabetes', 'Diabetes Care') }}</a>
+                <a href="{{ route('blog.index') }}">{{ $pageContent->value('site', 'navigation', 'blog', 'Blog') }}</a>
                 <details class="nav-menu">
                     <summary>{{ $pageContent->value('site', 'navigation', 'more', 'More categories') }} <span aria-hidden="true">⌄</span></summary>
                     <div class="mega-menu">
@@ -75,6 +76,7 @@
                                 <a href="{{ route('shop', ['category' => $category['query']]) }}">{{ $category['name'] }}</a>
                             @endforeach
                             <a href="{{ route('articles') }}">Health articles</a>
+                            <a href="{{ route('blog.index') }}">Blog</a>
                             <a href="{{ route('shop', ['sort' => 'discount']) }}">Offers</a>
                         </div>
                     </div>
@@ -130,6 +132,7 @@
                     <h2>{{ $pageContent->value('site', 'footer', 'explore_heading', 'Explore') }}</h2>
                     <a href="{{ route('shop') }}">Shop all</a>
                     <a href="{{ route('articles') }}">Health articles</a>
+                    <a href="{{ route('blog.index') }}">Blog</a>
                     <a href="{{ route('wishlist.index') }}">Wishlist</a>
                     <a href="{{ route('account') }}">My account</a>
                 </div>

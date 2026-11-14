@@ -1,32 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $blog->meta_title ?: $blog->title }} | Farlex</title>
-    <meta name="description" content="{{ $blog->meta_description ?: \Illuminate\Support\Str::limit(trim(preg_replace('/\s+/', ' ', $blog->content)), 155) }}">
+@extends('layout')
+
+@section('title', ($blog->meta_title ?: $blog->title).' | '.config('store.name'))
+@section('meta_description', $blog->meta_description ?: \Illuminate\Support\Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags($blog->content))), 155))
+
+@section('content')
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; color: #222; }
-        header { background: #183b65; color: #fff; padding: 22px 30px; }
-        header a { color: #fff; text-decoration: none; font-size: 22px; font-weight: bold; }
-        article { max-width: 780px; margin: 30px auto; background: #fff; padding: 34px; border-radius: 10px; }
-        h1 { color: #183b65; margin-top: 0; line-height: 1.3; }
-        .date { color: #777; font-size: 14px; margin-bottom: 20px; }
-        article img { width: 100%; border-radius: 8px; margin-bottom: 22px; }
-        .content { line-height: 1.75; font-size: 17px; }
-        .back { display: inline-block; margin-top: 26px; color: #183b65; font-weight: bold; text-decoration: none; }
+        .blog-article { max-width: 820px; margin: 0 auto; }
+        .blog-article h1 { margin: 0 0 10px; line-height: 1.25; }
+        .blog-article__date { color: #6b7585; font-size: .9rem; margin: 0 0 22px; }
+        .blog-article__image { width: 100%; height: auto; border-radius: 12px; margin: 0 0 26px; display: block; }
+        .blog-article__content { line-height: 1.8; font-size: 1.05rem; }
+        .blog-article .medical-disclaimer { margin-top: 32px; }
+        .blog-article__back { display: inline-block; margin-top: 22px; }
     </style>
-</head>
-<body>
-<header><a href="{{ route('blog.index') }}">Farlex Blog</a></header>
-<article>
-    <h1>{{ $blog->title }}</h1>
-    <div class="date">{{ $blog->shown_date->format('d M Y') }}</div>
-    @if ($blog->image_url)
-        <img src="{{ asset($blog->image_url) }}" alt="{{ $blog->title }}">
-    @endif
-    <div class="content">{!! nl2br(e($blog->content)) !!}</div>
-    <a class="back" href="{{ route('blog.index') }}">&larr; All articles</a>
-</article>
-</body>
-</html>
+
+    <div class="container page-shell">
+        <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="{{ route('store') }}">Home</a><span aria-hidden="true">/</span><a href="{{ route('blog.index') }}">Blog</a><span aria-hidden="true">/</span><span>{{ \Illuminate\Support\Str::limit($blog->title, 50) }}</span></nav>
+
+        <article class="blog-article">
+            <h1>{{ $blog->title }}</h1>
+            <p class="blog-article__date">{{ $blog->shown_date->format('d M Y') }}</p>
+
+            @if ($blog->image_url)
+                <img class="blog-article__image" src="{{ asset($blog->image_url) }}" alt="{{ $blog->title }}">
+            @endif
+
+            <div class="blog-article__content">{!! nl2br(e($blog->content)) !!}</div>
+
+            <div class="medical-disclaimer">This article is general information and not medical advice. Please speak to a registered medical practitioner or pharmacist about your own health.</div>
+
+            <a class="text-link blog-article__back" href="{{ route('blog.index') }}">← All articles</a>
+        </article>
+    </div>
+@endsection

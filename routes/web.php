@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BlogController;
 
 
+
 Route::get('/', [StoreController::class, 'index'])->name('store');
 Route::get('/shop', [StoreController::class, 'shop'])->name('shop');
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
@@ -67,3 +68,54 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->name('orders.show');
     });
 });
+
+
+\Illuminate\Support\Facades\Route::get('/api/chatbot/products', function (\Illuminate\Http\Request $request) {
+
+    $validated = $request->validate([
+        'q' => ['nullable', 'string', 'max:100'],
+    ]);
+
+    $query = \App\Models\Product::query()
+        ->where('active', true);
+
+    if (!empty($validated['q'])) {
+        $term = trim($validated['q']);
+
+        $query->where(function ($builder) use ($term) {
+            $builder->where('name', 'like', "%{$term}%")
+                ->orWhere('category', 'like', "%{$term}%")
+                ->orWhere('brand', 'like', "%{$term}%")
+                ->orWhere('manufacturer', 'like', "%{$term}%")
+                ->orWhere('description', 'like', "%{$term}%");
+        });
+    }
+
+    $products = $query
+        ->orderByDesc('featured')
+        ->orderBy('name')
+        ->limit(50)
+        ->get([
+            'name',
+            'slug',
+            'description',
+            'category',
+            'brand',
+            'manufacturer',
+            'pack_size',
+            'dosage_form',
+            'rx_required',
+            'price',
+            'mrp',
+            'rating',
+            'review_count',
+            'image_url',
+        ]);
+
+    return response()->json([
+        'success' => true,
+        'count' => $products->count(),
+        'products' => $products,
+    ]);
+
+})->middleware('throttle:30,1');
