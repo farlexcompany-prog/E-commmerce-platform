@@ -8,7 +8,6 @@
     <meta name="description" content="{{ strip_tags($__env->yieldContent('meta_description', config('store.tagline'))) }}">
     <meta name="theme-color" content="#000042">
     <title>{{ strip_tags($__env->yieldContent('title', config('store.name').' | Health essentials')) }}</title>
-    <link rel="preload" href="{{ asset('fonts/plus-jakarta-sans-latin-variable.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="{{ asset('fonts/inter-latin-variable.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="{{ asset('css/pharmacy.css') }}">
     <script defer src="{{ asset('js/pharmacy.js') }}"></script>
