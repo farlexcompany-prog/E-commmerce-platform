@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -160,5 +161,6 @@
     </footer>
 
     <a class="support-float" href="#support-contact" aria-label="Find pharmacist and support contact details">?</a>
+    @include('components.chatbot')
 </body>
 </html>
